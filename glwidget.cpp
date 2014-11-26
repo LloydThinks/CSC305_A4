@@ -22,7 +22,7 @@ GLWidget::~GLWidget()
 
 void GLWidget::clear()
 {
-     updateGL(int baby);
+     updateGL();
 }
 
 void GLWidget::initializeGL()
