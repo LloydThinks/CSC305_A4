@@ -60,6 +60,9 @@ private:
     void prepareImageDisplay(QImage* myimage); // converts from Qt to opengl format
     QImage glimage, qtimage;  // paintGL will display the gl formatted image
     // keep the qtimage around for saving (one is a copy of the other
+
+    // Added by Lloyd
+    bool isIntersecting(QVector3D pixelPosition, QVector3D ray, QVector3D circleCenter, double radius);
 };
 
 

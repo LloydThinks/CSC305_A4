@@ -8,7 +8,6 @@
 
 #include "glwidget.h"
 
-
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(parent)
 {
@@ -107,43 +106,123 @@ void GLWidget::saveImage( QString fileBuf )
 }
 
 void GLWidget::makeImage( )
-{   
+{
     QImage myimage(renderWidth, renderHeight, QImage::Format_RGB32);
 
     //TODO: Ray trace a simple circle following the tutorial!
-    QVector3D CameraPoint(renderWidth / 2, renderHeight / 2, -1);
-    double circleRadius = 400;
-    QVector3D circleCenter(renderWidth / 2, renderHeight / 2, 10);
+    QVector3D cameraPoint(renderWidth / 2, renderHeight / 2, -1);
 
-    for (int i = 0; i < renderWidth; i++)
+    QVector3D circleCenter(renderWidth / 2, renderHeight / 2, 10);
+    double circleRadius = 20;
+
+    // ONLY NEED TO BE CALCULATED ONCE PER CIRCLE
+        double rr = circleRadius * circleRadius;
+        // Vector from the cameraPoint to the circleCenter
+        QVector3D cPcCVector = (circleCenter - cameraPoint);
+        // Magnitude of cPcCVector, squared
+        double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
+
+
+    for (int i = 0; i < renderWidth/2; i++)
     {
-        for (int j = 0; j < renderHeight; j++)
+        for (int j = 0; j < renderHeight/2; j++)
         {
-            QVector3D Origin = CameraPoint;
-            QVector3D PixelPosition(i, j, 0);
-            QVector3D Direction = PixelPosition - Origin;
-            //Ray : R - O + t D;
-            //Our circle is at Z = 10
-            //so, t = 11
-            QVector3D Intersection = Origin + 11 * Direction;
-            QVector3D Distance = Intersection - circleCenter;
-            double length = Distance.length();
-            //If it's inside, set the pixel to white
-            //otherwise set it to black
-            if (length < circleRadius)
-            {
-                myimage.setPixel(i, j, qRgb(255, 255, 255));
+            // The current pixel we are trying to draw
+            QVector3D pixelPosition(i, j, 0);
+            //qDebug() << "pix: " << pixelPosition;
+
+            // Ray to be traced through the scene
+            QVector3D ray = (pixelPosition - cameraPoint).normalized();
+            //qDebug() << "ray: " << ray;
+
+            // Magnitude of ray from the cameraPoint to when it is
+            // perpendicular to the normal of the circleCenter
+            double v = QVector3D::dotProduct(cPcCVector, ray);
+            v *= 1000;  // Temporary Fix
+
+            // Difference between the circleRadius and distance
+            // from the circleCenter to ray when they are perpendicular
+            double disc = (rr - (cc - v*v));
+
+            qDebug() << "Three Doubles";
+            qDebug() << rr;
+            qDebug() << cc;
+            qDebug() << v*v;
+
+            qDebug() << "disc: " << disc;  // This number is not correct
+            if (disc <= 0) {  // ray does not intersect the circle
+                qDebug() << "miss";
             }
-            else
-            {
-                myimage.setPixel(i, j, qRgb(0, 0, 0));
+            else {  // ray intersects the circle
+                //qDebug() << "hit";
             }
+
         }
     }
 
     qtimage=myimage.copy(0, 0,  myimage.width(), myimage.height());
 
     prepareImageDisplay(&myimage);
+}
+/*
+QVector3D Origin = CameraPoint;
+QVector3D PixelPosition(i, j, 0);
+QVector3D Direction = PixelPosition - Origin;
+//Ray : R - O + t D;
+//Our circle is at Z = 10
+//so, t = 11
+QVector3D Intersection = Origin + 11 * Direction;
+QVector3D Distance = Intersection - circleCenter;
+double length = Distance.length();
+//If it's inside, set the pixel to white
+//otherwise set it to black
+if (length < circleRadius)
+{
+    //myimage.setPixel(i, j, qRgb(255, 255, 255));
+}
+else
+{
+    //myimage.setPixel(i, j, qRgb(0, 0, 0));
+}
+
+if ( disc > 0 )  // ray intersects sphere
+{
+    double d = sqrt(disc);
+    QVector3D P = QVector3D(PixelPosition + ((v - d) * Direction));
+    myimage.setPixel(i, j, qRgb(255, 255, 255));
+}
+else
+{
+    myimage.setPixel(i, j, qRgb(0, 0, 0));
+    qDebug() << "BLACK";
+}
+*/
+
+/* bool GLWidget::isIntersecting(QVector3D pixelPosition, QVector3D ray, QVector3D circleCenter, double radius)
+ * Formal Parameters: pixelPosition - The pixel from which the ray is coming from
+ *                    ray           - The direction vector that is perpendicular to the lens plane
+ *                    circleCenter  - The center of the circle to check intersection against
+ *                    radius        - The radius of the circle being passed in
+ *
+ * Returns: true  - The given ray from pixelPosition intersects with the given circle
+ *          false - The given ray from pixelPosition does not intersect the given circle
+ */
+bool GLWidget::isIntersecting(QVector3D pixelPosition, QVector3D ray, QVector3D circleCenter, double radius)
+{
+    double radiusSquared = radius * radius;
+
+    QVector3D EO = (circleCenter - pixelPosition).normalized();
+
+    double cSquared = QVector3D::dotProduct(EO, EO);
+
+    double v = QVector3D::dotProduct(EO, ray.normalized());
+
+    double disc = radiusSquared - (cSquared - v*v);
+
+    if ( disc <= 0 )
+        return false;  // ray does not intersect sphere
+    else
+        return true;  // ray intersects sphere
 }
 
 void GLWidget::about()

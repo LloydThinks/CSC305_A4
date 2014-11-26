@@ -35,8 +35,8 @@ typedef int bool;
 #include <stdio.h>
 #include <QEvent>
 #include <qfiledialog.h>
-
-
+#include <QVector>
+#include <QVector3D>
 
 //const  double   M_PI = 3.1415925;
 const  double pib5 = M_PI/5.0;
