@@ -109,52 +109,52 @@ void GLWidget::makeImage( )
 {
     QImage myimage(renderWidth, renderHeight, QImage::Format_RGB32);
 
-    //TODO: Ray trace a simple circle following the tutorial!
-    QVector3D cameraPoint(renderWidth / 2, renderHeight / 2, -1);
+    // The camera position
+    QVector3D cameraPoint(2, 1.5, -1);
 
-    QVector3D circleCenter(renderWidth / 2, renderHeight / 2, 10);
-    double circleRadius = 20;
+    // The circle to be traced
+    QVector3D circleCenter(2, 1.5, 10);
+    double circleRadius = 4;
 
-    // ONLY NEED TO BE CALCULATED ONCE PER CIRCLE
-        double rr = circleRadius * circleRadius;
-        // Vector from the cameraPoint to the circleCenter
-        QVector3D cPcCVector = (circleCenter - cameraPoint);
-        // Magnitude of cPcCVector, squared
-        double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
+    /** Circle Calculations: ONCE PER CIRCLE **/
+    double rr = circleRadius * circleRadius;
+    // Vector from the cameraPoint to the circleCenter
+    QVector3D cPcCVector = (circleCenter - cameraPoint);
+    // Magnitude of cPcCVector, squared
+    double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
+
+    // The circular light source
+    QVector3D lightCenter(5, 1.5, 8);
+    double lightRadius = 1;
+    /** Light Source Calculations: ONCE PER LIGHTSOURCE **/
+    double lr2 = lightRadius * lightRadius;
 
 
-    for (int i = 0; i < renderWidth/2; i++)
+
+
+    for (int i = 0; i < renderWidth; i++)
     {
-        for (int j = 0; j < renderHeight/2; j++)
+        for (int j = 0; j < renderHeight; j++)
         {
             // The current pixel we are trying to draw
-            QVector3D pixelPosition(i, j, 0);
-            //qDebug() << "pix: " << pixelPosition;
+            QVector3D pixelPosition(((double(i) * 4) / renderWidth), ((double(j) * 3) / renderHeight), 0);
 
             // Ray to be traced through the scene
             QVector3D ray = (pixelPosition - cameraPoint).normalized();
-            //qDebug() << "ray: " << ray;
 
             // Magnitude of ray from the cameraPoint to when it is
             // perpendicular to the normal of the circleCenter
             double v = QVector3D::dotProduct(cPcCVector, ray);
-            v *= 1000;  // Temporary Fix
 
             // Difference between the circleRadius and distance
             // from the circleCenter to ray when they are perpendicular
             double disc = (rr - (cc - v*v));
 
-            qDebug() << "Three Doubles";
-            qDebug() << rr;
-            qDebug() << cc;
-            qDebug() << v*v;
-
-            qDebug() << "disc: " << disc;  // This number is not correct
             if (disc <= 0) {  // ray does not intersect the circle
-                qDebug() << "miss";
+                myimage.setPixel(i, j, qRgb(255, 255, 255));
             }
             else {  // ray intersects the circle
-                //qDebug() << "hit";
+                myimage.setPixel(i, j, qRgb(0, 0, 0));
             }
 
         }
