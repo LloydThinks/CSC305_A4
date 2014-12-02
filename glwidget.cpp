@@ -119,7 +119,7 @@ void GLWidget::makeImage( )
 
     // The camera position
     QVector3D cameraPoint(2, 1.5, -1);
-    QVector3D circleCenter;
+    QVector3D sphereCenter, lightSphereCenter;
     double circleRadius, circleRadius2;
 
 
@@ -127,12 +127,12 @@ void GLWidget::makeImage( )
     for (int sIndex = 0; sIndex < spheres.size(); sIndex++) {
 
         // The circle to be traced
-        circleCenter = spheres[sIndex];
+        sphereCenter = spheres[sIndex];
         circleRadius = sphereRadii[sIndex];
 
         circleRadius2 = circleRadius * circleRadius;
-        // Vector from the cameraPoint to the circleCenter
-        QVector3D cPcCVector = (circleCenter - cameraPoint);
+        // Vector from the cameraPoint to the sphereCenter
+        QVector3D cPcCVector = (sphereCenter - cameraPoint);
         // Magnitude of cPcCVector, squared
         double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
 
@@ -146,11 +146,11 @@ void GLWidget::makeImage( )
                 QVector3D ray = (pixelPosition - cameraPoint).normalized();
 
                 // Magnitude of ray from the cameraPoint to when it is
-                // perpendicular to the normal of the circleCenter
+                // perpendicular to the normal of the sphereCenter
                 double v = QVector3D::dotProduct(cPcCVector, ray);
 
                 // Difference between the circleRadius and distance
-                // from the circleCenter to ray when they are perpendicular
+                // from the sphereCenter to ray when they are perpendicular
                 double disc = (circleRadius2 - (cc - v*v));
 
                 if (disc <= 0) {  // ray does not intersect the circle
@@ -164,7 +164,7 @@ void GLWidget::makeImage( )
                         // Start with light as a single point
 
 
-
+                        lightSphereCenter = lightSpheres[lIndex];
 
 
 
