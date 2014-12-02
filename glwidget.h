@@ -80,6 +80,7 @@ private:
         }
     };
     QVector< Sphere > spheres;
+    QVector3D lightSphere;
 
 };
 
