@@ -14,7 +14,6 @@
 #include <QtOpenGL>
 #include <math.h>
 
-
 //This is our OpenGL Component we built it on top of QGLWidget
 class GLWidget : public QGLWidget
 {
@@ -61,13 +60,27 @@ private:
     QImage glimage, qtimage;  // paintGL will display the gl formatted image
     // keep the qtimage around for saving (one is a copy of the other
 
-    // Added by Lloyd
-    bool isIntersecting(QVector3D pixelPosition, QVector3D ray, QVector3D circleCenter, double radius);
-    QVector< QVector3D > spheres;
-    QVector< double > sphereRadii;
+    /// Additional Functions
+    QVector< double > traceRay(QVector3D ray, QVector3D cameraPosition);
 
-    QVector< QVector3D > lightSpheres;
-    QVector< double > lightSphereRadii;
+    /// Additional Variables
+    struct Sphere {
+        QVector3D center;
+        double radius;
+        double diffR;
+        double diffG;
+        double diffB;
+        Sphere() {}
+        Sphere(QVector3D c, double r, double dR, double dG, double dB) {
+            center = c;
+            radius = r;
+            diffR = dR;
+            diffG = dG;
+            diffB = dB;
+        }
+    };
+    QVector< Sphere > spheres;
+
 };
 
 
