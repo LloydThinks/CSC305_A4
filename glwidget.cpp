@@ -32,6 +32,14 @@ void GLWidget::initializeGL()
     glMatrixMode( GL_MODELVIEW );
     glLoadIdentity();
     glPointSize(5);
+
+    // Initialize Spheres
+    spheres.append(QVector3D(2, 1.5, 10));
+    sphereRadii.append(4);
+
+    // Initial Light Spheres
+    lightSpheres.append(QVector3D(5, 1.5, 8));
+    lightSphereRadii.append(1);
 }
 
 void GLWidget::paintGL()
@@ -111,53 +119,72 @@ void GLWidget::makeImage( )
 
     // The camera position
     QVector3D cameraPoint(2, 1.5, -1);
-
-    // The circle to be traced
-    QVector3D circleCenter(2, 1.5, 10);
-    double circleRadius = 4;
-
-    /** Circle Calculations: ONCE PER CIRCLE **/
-    double rr = circleRadius * circleRadius;
-    // Vector from the cameraPoint to the circleCenter
-    QVector3D cPcCVector = (circleCenter - cameraPoint);
-    // Magnitude of cPcCVector, squared
-    double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
-
-    // The circular light source
-    QVector3D lightCenter(5, 1.5, 8);
-    double lightRadius = 1;
-    /** Light Source Calculations: ONCE PER LIGHTSOURCE **/
-    double lr2 = lightRadius * lightRadius;
+    QVector3D circleCenter;
+    double circleRadius, circleRadius2;
 
 
+    /// For each sphere in world space
+    for (int sIndex = 0; sIndex < spheres.size(); sIndex++) {
+
+        // The circle to be traced
+        circleCenter = spheres[sIndex];
+        circleRadius = sphereRadii[sIndex];
+
+        circleRadius2 = circleRadius * circleRadius;
+        // Vector from the cameraPoint to the circleCenter
+        QVector3D cPcCVector = (circleCenter - cameraPoint);
+        // Magnitude of cPcCVector, squared
+        double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
+
+        /// For each pixel in the screen
+        for (int i = 0; i < renderWidth; i++) {
+            for (int j = 0; j < renderHeight; j++) {
+                // The current pixel we are trying to draw
+                QVector3D pixelPosition(((double(i) * 4) / renderWidth), ((double(j) * 3) / renderHeight), 0);
+
+                // Ray to be traced through the scene
+                QVector3D ray = (pixelPosition - cameraPoint).normalized();
+
+                // Magnitude of ray from the cameraPoint to when it is
+                // perpendicular to the normal of the circleCenter
+                double v = QVector3D::dotProduct(cPcCVector, ray);
+
+                // Difference between the circleRadius and distance
+                // from the circleCenter to ray when they are perpendicular
+                double disc = (circleRadius2 - (cc - v*v));
+
+                if (disc <= 0) {  // ray does not intersect the circle
+                    myimage.setPixel(i, j, qRgb(255, 255, 255));
+                }
+                else {  // ray intersects the circle
+                    myimage.setPixel(i, j, qRgb(0, 0, 0));
+
+                    /// For each light source
+                    for (int lIndex = 0; lIndex < lightSpheres.size(); lIndex++) {
+                        // Start with light as a single point
 
 
-    for (int i = 0; i < renderWidth; i++)
-    {
-        for (int j = 0; j < renderHeight; j++)
-        {
-            // The current pixel we are trying to draw
-            QVector3D pixelPosition(((double(i) * 4) / renderWidth), ((double(j) * 3) / renderHeight), 0);
 
-            // Ray to be traced through the scene
-            QVector3D ray = (pixelPosition - cameraPoint).normalized();
 
-            // Magnitude of ray from the cameraPoint to when it is
-            // perpendicular to the normal of the circleCenter
-            double v = QVector3D::dotProduct(cPcCVector, ray);
 
-            // Difference between the circleRadius and distance
-            // from the circleCenter to ray when they are perpendicular
-            double disc = (rr - (cc - v*v));
 
-            if (disc <= 0) {  // ray does not intersect the circle
-                myimage.setPixel(i, j, qRgb(255, 255, 255));
+
+//                        /** Circle Calculations: ONCE PER CIRCLE **/
+//                        // The circular light source
+//                        QVector3D lightCenter(5, 1.5, 8);
+//                        double lightRadius = 1;
+//                        /** Light Source Calculations: ONCE PER LIGHTSOURCE **/
+//                        double lr2 = lightRadius * lightRadius;
+
+
+
+                    }
+                }
             }
-            else {  // ray intersects the circle
-                myimage.setPixel(i, j, qRgb(0, 0, 0));
-            }
-
         }
+
+
+
     }
 
     qtimage=myimage.copy(0, 0,  myimage.width(), myimage.height());

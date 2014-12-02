@@ -63,6 +63,11 @@ private:
 
     // Added by Lloyd
     bool isIntersecting(QVector3D pixelPosition, QVector3D ray, QVector3D circleCenter, double radius);
+    QVector< QVector3D > spheres;
+    QVector< double > sphereRadii;
+
+    QVector< QVector3D > lightSpheres;
+    QVector< double > lightSphereRadii;
 };
 
 
