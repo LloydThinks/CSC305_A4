@@ -154,31 +154,40 @@ void GLWidget::makeImage( )
                 double disc = (circleRadius2 - (cc - v*v));
 
                 if (disc <= 0) {  // ray does not intersect the circle
-                    myimage.setPixel(i, j, qRgb(255, 255, 255));
+                    myimage.setPixel(i, j, qRgb(0, 0, 0));
                 }
                 else {  // ray intersects the circle
-                    myimage.setPixel(i, j, qRgb(0, 0, 0));
+                    double d = sqrt(disc);
 
-                    /// For each light source
-                    for (int lIndex = 0; lIndex < lightSpheres.size(); lIndex++) {
-                        // Start with light as a single point
+                    QVector3D surfaceIntersect = cameraPoint + (v - d)*ray;
+
+                    QVector3D surfaceNormal = (surfaceIntersect - sphereCenter).normalized();
+
+                    QVector3D lightVector = (QVector3D(5, 1.5, 8) - surfaceIntersect).normalized();
+
+                    double angleToLight = QVector3D::dotProduct(surfaceNormal, lightVector);
+
+                    double L = max(0.0, -angleToLight);
+
+                    double lShadingR = 0.7 * 0.7 * L;
+                    double lShadingG = 0.7 * 0.7 * L;
+                    double lShadingB = 0.7 * 0.7 * L;
 
 
-                        lightSphereCenter = lightSpheres[lIndex];
 
+                    myimage.setPixel(i, j, qRgb(lShadingR*255, lShadingG*255, lShadingB*255));
 
-
-
+//                    /// For each light source
+//                    for (int lIndex = 0; lIndex < lightSpheres.size(); lIndex++) {
+//                          Start with light as a single point
+//                        lightSphereCenter = lightSpheres[lIndex];
 //                        /** Circle Calculations: ONCE PER CIRCLE **/
 //                        // The circular light source
 //                        QVector3D lightCenter(5, 1.5, 8);
 //                        double lightRadius = 1;
 //                        /** Light Source Calculations: ONCE PER LIGHTSOURCE **/
 //                        double lr2 = lightRadius * lightRadius;
-
-
-
-                    }
+//                    }
                 }
             }
         }

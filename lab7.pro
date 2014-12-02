@@ -10,13 +10,15 @@ INCLUDEPATH += .
 HEADERS += glwidget.h \
     window.h \
     foundation.h \
-    version.h 
+    version.h \ 
+    polygon.h
 
 FORMS += MainWindow.ui 
 
 SOURCES += glwidget.cpp \
     main.cpp \
-    window.cpp
+    window.cpp \
+    polygon.cpp
 
 
 QT += opengl
