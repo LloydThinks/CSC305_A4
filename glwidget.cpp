@@ -34,10 +34,11 @@ void GLWidget::initializeGL()
     glPointSize(5);
 
     // Initialize Spheres
-    spheres.append(Sphere(QVector3D(3.0, 1.5, 0.0), 4.0, 0.7, 0.7, 0.7));
+    spheres.append(Sphere(QVector3D(5.0, 5.0, 6.0), 2.0, 0.7, 0.7, 0.7));
 
     // Initialize Light Sphere
-    lightSphere = QVector3D(8.0, 1.5, 0.0);
+    lightSpheres.append(LightSphere(QVector3D(7.0, 5.0, 8.0), 0.25));
+    lightSpheres.append(LightSphere(QVector3D(2.0, 2.0, 8.0), 0.25));
 }
 
 void GLWidget::paintGL()
@@ -52,11 +53,11 @@ void GLWidget::resizeGL( int w, int h )
 {
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    glOrtho(0.0,GLdouble(w),0,GLdouble(h),-10.0,10.0);
+    glOrtho(0.0,GLdouble(w),0,GLdouble(h),-10000.0,10000.0);
     glFlush();
     glMatrixMode(GL_MODELVIEW);
     glViewport( 0, 0, (GLint)w, (GLint)h );
-    cerr << "gl new size "<< w SEP h NL;
+    //cerr << "gl new size "<< w SEP h NL;
     renderWidth = w;
     renderHeight = h;
 }
@@ -97,7 +98,7 @@ void GLWidget::prepareImageDisplay(QImage* myimage)
 void GLWidget::displayImage()
 {
     if (glimage.width()==0) {
-        cerr << "Null Image\n";
+        //cerr << "Null Image\n";
         return;
     } else {
         glRasterPos2i(0,0);
@@ -123,30 +124,39 @@ void GLWidget::makeImage( )
 
     /// Initilize variables
     myimage = QImage(renderWidth, renderHeight, QImage::Format_RGB32);
-    widthScale = 5.0;
+    widthScale = 10.0;
     heightScale = renderHeight / (renderWidth / widthScale);
-    cameraPosition = QVector3D(2, 1.5, 10);
+    cameraPosition = QVector3D(widthScale/2.0, heightScale/2.0, 50.0);
+
+    qDebug() << "RenderWidth: " << renderWidth;
+    qDebug() << "RenderHeight: " << renderHeight;
+    qDebug() << "CameraPosition: " << cameraPosition;
 
     /// Loop through the pixels on the screen, setting each one as you go
     for (int i = 0; i < renderWidth; i++) {
         for (int j = 0; j < renderHeight; j++) {
             // The current pixel we are trying to draw
-            pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth), ((double(j) * heightScale) / renderHeight), 9);
+            pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth), ((double(j) * heightScale) / renderHeight), 10);
+
+            if (i == renderWidth/2 && j == renderHeight/2)
+                qDebug() << "PlaneCenter: " << pixelPosition;
 
             // Ray to be traced through the scene
             ray = (pixelPosition - cameraPosition).normalized();
+            if (i == renderWidth/2 && j == renderHeight/2)
+                qDebug() << "Ray at Center: " << ray;
             // Trace the ray and return important colour attributes
             rayTrace = traceRay(ray, cameraPosition);
 
             if (rayTrace[0] != 0) {  // Ray intersects something
-                myimage.setPixel(i, j, qRgb(rayTrace[1], rayTrace[2], rayTrace[3]));
+                myimage.setPixel(i, (renderWidth - (j + 1)), qRgb(rayTrace[1], rayTrace[2], rayTrace[3]));
             }
             else {  // Ray does not intersect anything
-                myimage.setPixel(i, j, qRgb(0, 0, 0));
+                myimage.setPixel(i, (renderWidth - (j + 1)), qRgb(0, 0, 0));
             }
         }
     }
-    qtimage=myimage.copy(0, 0,  myimage.width(), myimage.height());
+    qtimage = myimage.copy(0, 0,  myimage.width(), myimage.height());
     prepareImageDisplay(&myimage);
 }
 
@@ -167,8 +177,8 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
 {
     /// Variables
     QVector< double > eval = QVector< double >(4);
-    QVector3D sphereCenter, cPcCVector;
-    double sphereRadius, sphereRadius2, closestObject;
+    QVector3D sphereCenter, lightSphereCenter, cPcCVector;
+    double sphereRadius, sphereRadius2, lightSphereRadius, lightSphereRadius2, closestObject;
 
     // Represents that we have not intersected anything yet
     eval[0] = 0;
@@ -185,7 +195,7 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
 
         sphereRadius2 = sphereRadius * sphereRadius;
         // Vector from the cameraPoint to the sphereCenter
-        QVector3D cPcCVector = (sphereCenter - cameraPosition);
+        cPcCVector = (sphereCenter - cameraPosition);
         // Magnitude of cPcCVector, squared
         double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
 
@@ -197,34 +207,93 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
         // from the sphereCenter to ray when they are perpendicular
         double disc = (sphereRadius2 - (cc - v*v));
 
-        if (disc <= 0) {  // ray does not intersect the circle
+        if (disc <= 0) {  // ray does not intersect the sphere
             eval[1] = 0.0;
             eval[2] = 0.0;
             eval[3] = 0.0;
         }
-        else {  // ray intersects the circle
+        else {  // ray intersects the sphere
             eval[0] = 1;
+
             double d = sqrt(disc);
 
             QVector3D surfaceIntersect = cameraPosition + (v - d)*ray;
+            double distanceToSurface = (surfaceIntersect - cameraPosition).length();
+            if (distanceToSurface < closestObject) {
+                closestObject = distanceToSurface;
+            }
 
             QVector3D surfaceNormal = (surfaceIntersect - sphereCenter).normalized();
 
-            QVector3D lightVector = (lightSphere - surfaceIntersect).normalized();
 
-            double angleToLight = QVector3D::dotProduct(surfaceNormal, lightVector);
+            // Before any light sources, the light is very faint
+            double lShadingR = 0.08;
+            double lShadingG = 0.08;
+            double lShadingB = 0.08;
 
-            double L = max(0.0, -angleToLight);
+            /// See which light sources are acting on this surface intersect
+            for (int lIndex = 0; lIndex < lightSpheres.size(); lIndex++) {
 
-            double lShadingR = 0.7 * 0.7 * L;
-            double lShadingG = 0.7 * 0.7 * L;
-            double lShadingB = 0.7 * 0.7 * L;
+                QVector3D lightVector = (lightSpheres[lIndex].center - surfaceIntersect).normalized();
+                double angleToLight = QVector3D::dotProduct(surfaceNormal, lightVector);
+                double L = max(0.0, angleToLight);
+
+                lShadingR += (0.6 * 0.7 * L);
+                lShadingG += (0.6 * 0.7 * L);
+                lShadingB += (0.6 * 0.7 * L);
+            }
 
             eval[1] = lShadingR*255;
             eval[2] = lShadingG*255;
             eval[3] = lShadingB*255;
+            if (lShadingB >= .7)
+                qDebug() << "Here";
+            //qDebug() << lShadingB;
         }
+    }
 
+    /// Check ray against every light source in world space
+    for (int lIndex = 0; lIndex < lightSpheres.size(); lIndex++) {
+
+        // The light circle to be traced
+        lightSphereCenter = lightSpheres[lIndex].center;
+        lightSphereRadius = lightSpheres[lIndex].radius;
+
+        lightSphereRadius2 = lightSphereRadius * lightSphereRadius;
+        // Vector from the cameraPoint to the lightSphereCenter
+        cPcCVector = (lightSphereCenter - cameraPosition);
+        // Magnitude of cPcCVector, squared
+        double cc = QVector3D::dotProduct(cPcCVector, cPcCVector);
+
+        // Magnitude of ray from the cameraPoint to when it is
+        // perpendicular to the normal of the lightSphereCenter
+        double v = QVector3D::dotProduct(cPcCVector, ray);
+
+        // Difference between the lightCircleRadius and distance
+        // from the lightSphereCenter to ray when they are perpendicular
+        double disc = (lightSphereRadius2 - (cc - v*v));
+
+        if (disc <= 0) {  // ray does not intersect the light sphere
+            // Add code
+            continue;
+        }
+        else {  // ray intersects the light sphere
+            double d = sqrt(disc);
+
+            QVector3D surfaceIntersect = cameraPosition + (v - d)*ray;
+            //qDebug() << "Surface Intersect: " << surfaceIntersect;
+
+            double distanceToSurface = (surfaceIntersect - cameraPosition).length();
+            //qDebug() << "Distance To Surface: " << distanceToSurface;
+            if (distanceToSurface < closestObject) {
+                closestObject = distanceToSurface;
+                eval[0] = 1;
+                eval[1] = 255.0;
+                eval[2] = 255.0;
+                eval[3] = 255.0;
+            }
+
+        }
 
     }
 

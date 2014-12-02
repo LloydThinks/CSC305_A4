@@ -79,8 +79,18 @@ private:
             diffB = dB;
         }
     };
+    struct LightSphere {
+        QVector3D center;
+        double radius;
+        LightSphere() {}
+        LightSphere(QVector3D c, double r) {
+            center = c;
+            radius = r;
+        }
+    };
+
     QVector< Sphere > spheres;
-    QVector3D lightSphere;
+    QVector< LightSphere > lightSpheres;
 
 };
 
