@@ -37,19 +37,20 @@ void GLWidget::initializeGL()
 
     /// Light Settings
     sceneAmbience = 0.1;
-    lightFog = 1.5;
+    lightFog = 1;
 
     // Initialize Spheres
-    double ambi[3] = {0.7, 0.7, 0.7};
-    spheres.append(Sphere(QVector3D(2.0, 7.0, 0.0), 2.0, ambi, ambi, ambi));
-    spheres.append(Sphere(QVector3D(8.0, 3.0, 0.0), 2.0, ambi, ambi, ambi));
+    double ambi[3] = {0.2, 0.2, 0.2};
+    double diff[3] = {0.7, 0.7, 0.7};
+    double spec[3] = {0.7, 0.7, 0.7};
+    spheres.append(Sphere(QVector3D(3.0, 7.0, 5.0), 2.0, ambi, diff, spec));
+    spheres.append(Sphere(QVector3D(8.0, 3.0, 5.0), 2.0, ambi, diff, spec));
 
     // Initialize Light Sphere
     double white[3] = {1.0, 1.0, 1.0};
     double yellow[3] = {.95, 0.95, 0.7};
-    lightSpheres.append(LightSphere(QVector3D(2.0, 5.0, 8.0), 0.25, yellow));
-
-    lightSpheres.append(LightSphere(QVector3D(8.0, 5.0, 8.0), 0.25, white));
+    lightSpheres.append(LightSphere(QVector3D(2.0, 3.0, 2.0), 0.25, yellow));
+    lightSpheres.append(LightSphere(QVector3D(8.0, 5.0, 2.0), 0.25, white));
 }
 
 void GLWidget::paintGL()
@@ -132,7 +133,7 @@ void GLWidget::makeImage( )
     QVector3D pixelPosition, ray, cameraPosition;
     QVector<double> rayTrace;
     double widthScale, heightScale;
-    double pixelColours[renderWidth][renderHeight][3];
+    QVector<QVector<QVector< double > > > pixelColours = QVector<QVector<QVector< double > > >(renderWidth);
 
     /// Initilize variables
     myimage = QImage(renderWidth, renderHeight, QImage::Format_RGB32);
@@ -146,9 +147,13 @@ void GLWidget::makeImage( )
 
     /// Loop through the pixels on the screen, setting each one as you go
     for (int i = 0; i < renderWidth; i++) {
+        pixelColours[i] = QVector<QVector< double > >(renderHeight);
         for (int j = 0; j < renderHeight; j++) {
+            pixelColours[i][j] = QVector< double >(3);
             // Initialize pixel to be black
-            myimage.setPixel(i, (renderHeight - 1 - j), qRgb(0, 0, 0));
+            pixelColours[i][j][0] = 0.0;
+            pixelColours[i][j][1] = 0.0;
+            pixelColours[i][j][2] = 0.0;
 
             // The current pixel we are trying to draw
             pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth), ((double(j) * heightScale) / renderHeight), 10.0);
@@ -164,15 +169,17 @@ void GLWidget::makeImage( )
             rayTrace = traceRay(ray, cameraPosition);
 
             if (rayTrace[0] != 0) {  // Ray intersects something
-                pixelColours[i][(renderHeight - 1 - j)][0] = rayTrace[1];
-                pixelColours[i][(renderHeight - 1 - j)][1] = rayTrace[2];
-                pixelColours[i][(renderHeight - 1 - j)][2] = rayTrace[3];
+                pixelColours[i][j][0] = rayTrace[1];
+                pixelColours[i][j][1] = rayTrace[2];
+                pixelColours[i][j][2] = rayTrace[3];
             }
             else {  // Ray does not intersect anything
+                ;
                 //myimage.setPixel(i, (renderHeight - 1 - j), qRgb(0, 0, 0));
             }
         }
     }
+
     /// Find maximum colour dilution on the screen
     double maxColourValue;
     double maxDilution = 0.0;
@@ -185,11 +192,16 @@ void GLWidget::makeImage( )
             }
         }
     }
-    // If the max dilution in the scene is greater then 255.0
+
+    /// If the max dilution in the scene is greater then 255.0
     if (maxDilution > 255.0) {
+        qDebug() << maxDilution;
+        double ratio = (255.0 / (maxDilution + 1.0));
         for (int i = 0; i < renderWidth; i++) {
             for (int j = 0; j < renderHeight; j++) {
-
+                pixelColours[i][j][0] = ratio * pixelColours[i][j][0];
+                pixelColours[i][j][1] = ratio * pixelColours[i][j][1];
+                pixelColours[i][j][2] = ratio * pixelColours[i][j][2];
             }
         }
     }
@@ -197,9 +209,12 @@ void GLWidget::makeImage( )
     /// Setting the pixel colours
     for (int i = 0; i < renderWidth; i++) {
         for (int j = 0; j < renderHeight; j++) {
-            myimage.setPixel(i, j, qRgb(pixelColours[0], pixelColours[1], pixelColours[2]));
+            myimage.setPixel(i, j, qRgb(pixelColours[i][(renderHeight - 1 - j)][0], \
+                                        pixelColours[i][(renderHeight - 1 - j)][1], \
+                                        pixelColours[i][(renderHeight - 1 - j)][2]));
         }
     }
+
     qtimage = myimage.copy(0, 0,  myimage.width(), myimage.height());
     prepareImageDisplay(&myimage);
 }
@@ -209,9 +224,10 @@ void GLWidget::makeImage( )
  * Formal Parameters: ray - The ray to be traced in the scene
  *
  * Returns: eval[0] - 0 if intersects with nothing
- *                    1 if intersects sphere
- *                    2 if intersects light source
- *                    3 if intersects wall
+ *                    1 if intersects with fog
+ *                    2 if intersects sphere
+ *                    3 if intersects light source
+ *                    4 if intersects wall
  *          eval[1] - Red colour value of pixel
  *          eval[2] - Green colour value of pixel
  *          eval[3] - Blue colour value of pixel
@@ -257,7 +273,7 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
         if (disc <= 0) {  // ray does not intersect the sphere
         }
         else {  // ray intersects the sphere
-            eval[0] = 1;
+            eval[0] = 2;
 
             d = sqrt(disc);
 
@@ -298,15 +314,6 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
 
             }
 
-            // If any light value is over max
-            if (shadingR > 1.0 || shadingG > 1.0 || shadingB > 1.0) {
-                double maxValue = max(shadingR, max(shadingG, shadingB));
-                maxValue += .05;  // To bring down the light levels a little more
-                shadingR = shadingR / maxValue;
-                shadingG = shadingG / maxValue;
-                shadingB = shadingB / maxValue;
-            }
-
             eval[1] = shadingR*255;
             eval[2] = shadingG*255;
             eval[3] = shadingB*255;
@@ -334,7 +341,7 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
         // Difference between the lightCircleRadius and distance
         // from the lightSphereCenter to ray when they are perpendicular
         double disc1 = (lightSphereRadius2 - (cc - v*v));
-        double disc2 = ((lightSphereRadius2 + lightFog*lightFog) - (cc - v*v));
+        double disc2 = (pow((lightSphereRadius + lightFog), 2) - (cc - v*v));
 
         if (disc2 <= 0) {  // ray does not intersect the light sphere or surrounding light radius
             // Add code
@@ -343,30 +350,17 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
         else if (disc1 <= 0) {  // Ray intersects the surrounding light fog, but not the light sphere
             eval[0] = 1;
             double d = sqrt(disc2);
+            QVector3D surfaceIntersect = cameraPosition + (v - d)*ray;
+            distanceToSurface = (surfaceIntersect - cameraPosition).length();
 
-            double fogLevel = (.25 * ( d / (lightSphereRadius + lightFog)));
-            eval[1] += (255.0 * lightSpheres[lIndex].intensity[0] * fogLevel);
-            eval[2] += (255.0 * lightSpheres[lIndex].intensity[1] * fogLevel);
-            eval[3] += (255.0 * lightSpheres[lIndex].intensity[2] * fogLevel);
-
-
-
-            // If any light value is over max
-            if (eval[1] >= 255.0 || eval[2] >= 255.0 || eval[3] >= 255.0) {
-                qDebug() << "Broken Pixel: ";
-                qDebug() << "evalR: " << eval[1];
-                qDebug() << "evalR: " << eval[2];
-                qDebug() << "evalR: " << eval[3];
-                double maxValue = max(eval[1], max(eval[2], eval[3]));
-                maxValue += 10.0;  // To bring down the light levels a little more
-                eval[1] = 255.0 * (eval[1] / maxValue);
-                eval[2] = 255.0 * (eval[2] / maxValue);
-                eval[3] = 255.0 * (eval[3] / maxValue);
-                qDebug() << "Converted Pixel: ";
-                qDebug() << "evalR: " << eval[1];
-                qDebug() << "evalR: " << eval[2];
-                qDebug() << "evalR: " << eval[3];
+            if (distanceToSurface < closestObject) {
+//                double fogLevel = pow((.25 * ( d / (lightSphereRadius + lightFog))), 1.25);
+                double fogLevel = pow(( d / (lightSphereRadius + lightFog)), 4);
+                eval[1] += (255.0 * lightSpheres[lIndex].intensity[0] * fogLevel);
+                eval[2] += (255.0 * lightSpheres[lIndex].intensity[1] * fogLevel);
+                eval[3] += (255.0 * lightSpheres[lIndex].intensity[2] * fogLevel);
             }
+
 
         }
         else {  // ray intersects the light sphere
@@ -376,16 +370,16 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
 
             if (distanceToSurface < closestObject) {
                 closestObject = distanceToSurface;
-                eval[0] = 2;
+                eval[0] = 3;
 
                 surfaceNormal = (surfaceIntersect - lightSpheres[lIndex].center).normalized();
                 lightToCamera = (cameraPosition - lightSpheres[lIndex].center).normalized();
                 normalToCamera = QVector3D::dotProduct(surfaceNormal, lightToCamera);
 
                 /// 255 is max; Each sphere has individual intensity ; falloff function for edges of light sources
-                eval[1] = (255.0 * pow(lightSpheres[lIndex].intensity[0], .5) * pow(normalToCamera, 0.5));
-                eval[2] = (255.0 * pow(lightSpheres[lIndex].intensity[1], .5) * pow(normalToCamera, 0.5));
-                eval[3] = (255.0 * pow(lightSpheres[lIndex].intensity[2], .5) * pow(normalToCamera, 0.5));
+                eval[1] = (255.0 * lightSpheres[lIndex].intensity[0]);
+                eval[2] = (255.0 * lightSpheres[lIndex].intensity[1]);
+                eval[3] = (255.0 * lightSpheres[lIndex].intensity[2]);
 
             }
 
