@@ -19,6 +19,31 @@ class GLWidget : public QGLWidget
 {
     Q_OBJECT
 
+    struct Sphere {
+        QVector3D center;
+        double radius;
+        double diffR;
+        double diffG;
+        double diffB;
+        Sphere() {}
+        Sphere(QVector3D c, double r, double dR, double dG, double dB) {
+            center = c;
+            radius = r;
+            diffR = dR;
+            diffG = dG;
+            diffB = dB;
+        }
+    };
+    struct LightSphere {
+        QVector3D center;
+        double radius;
+        LightSphere() {}
+        LightSphere(QVector3D c, double r) {
+            center = c;
+            radius = r;
+        }
+    };
+
 public:
     //Constructor for GLWidget
     GLWidget(QWidget *parent = 0);
@@ -64,31 +89,7 @@ private:
     QVector< double > traceRay(QVector3D ray, QVector3D cameraPosition);
 
     /// Additional Variables
-    struct Sphere {
-        QVector3D center;
-        double radius;
-        double diffR;
-        double diffG;
-        double diffB;
-        Sphere() {}
-        Sphere(QVector3D c, double r, double dR, double dG, double dB) {
-            center = c;
-            radius = r;
-            diffR = dR;
-            diffG = dG;
-            diffB = dB;
-        }
-    };
-    struct LightSphere {
-        QVector3D center;
-        double radius;
-        LightSphere() {}
-        LightSphere(QVector3D c, double r) {
-            center = c;
-            radius = r;
-        }
-    };
-
+    double cameraDepth;
     QVector< Sphere > spheres;
     QVector< LightSphere > lightSpheres;
 
