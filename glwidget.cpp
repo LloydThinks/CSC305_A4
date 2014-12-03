@@ -36,21 +36,21 @@ void GLWidget::initializeGL()
     cameraDepth = 20.0;
 
     /// Light Settings
-    sceneAmbience = 0.1;
+    sceneAmbience = 0.2;
     lightFog = 1;
 
     // Initialize Spheres
-    double ambi[3] = {0.2, 0.2, 0.2};
+    double ambi[3] = {0.7, 0.7, 0.7};
     double diff[3] = {0.7, 0.7, 0.7};
-    double spec[3] = {0.7, 0.7, 0.7};
+    double spec[3] = {0.6, 0.6, 0.6};
     spheres.append(Sphere(QVector3D(3.0, 7.0, 5.0), 2.0, ambi, diff, spec));
-    spheres.append(Sphere(QVector3D(8.0, 3.0, 5.0), 2.0, ambi, diff, spec));
+    spheres.append(Sphere(QVector3D(8.0, 3.0, 4.0), 2.0, ambi, diff, spec));
 
     // Initialize Light Sphere
-    double white[3] = {1.0, 1.0, 1.0};
-    double yellow[3] = {.95, 0.95, 0.7};
-    lightSpheres.append(LightSphere(QVector3D(2.0, 3.0, 2.0), 0.25, yellow));
-    lightSpheres.append(LightSphere(QVector3D(8.0, 5.0, 2.0), 0.25, white));
+    double white[3] = {0.8, 0.8, 0.8};
+    double yellow[3] = {0.6, 0.6, 0.42};
+    lightSpheres.append(LightSphere(QVector3D(2.0, 3.0, 6.0), 0.25, yellow));
+    lightSpheres.append(LightSphere(QVector3D(8.0, 5.0, 7.0), 0.25, white));
 }
 
 void GLWidget::paintGL()
@@ -298,9 +298,10 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
                 lightVector = (lightSpheres[lIndex].center - surfaceIntersect).normalized();
                 angleToLight = QVector3D::dotProduct(surfaceNormal, lightVector);
                 L = max(0.0, angleToLight);
-                shadingR += (spheres[sIndex].diff[0] * (lightSpheres[lIndex].intensity[0] / pow(distanceToSphere/5, 1)) * L);
-                shadingG += (spheres[sIndex].diff[1] * (lightSpheres[lIndex].intensity[1] / pow(distanceToSphere/5, 1)) * L);
-                shadingB += (spheres[sIndex].diff[2] * (lightSpheres[lIndex].intensity[2] / pow(distanceToSphere/5, 1)) * L);
+
+                shadingR += (spheres[sIndex].diff[0] * (lightSpheres[lIndex].intensity[0] / pow(distanceToSphere/2, 1)) * L);
+                shadingG += (spheres[sIndex].diff[1] * (lightSpheres[lIndex].intensity[1] / pow(distanceToSphere/2, 1)) * L);
+                shadingB += (spheres[sIndex].diff[2] * (lightSpheres[lIndex].intensity[2] / pow(distanceToSphere/2, 1)) * L);
 
                 /// Blinn-Phong Shading
                 eyeVector = (cameraPosition - surfaceIntersect).normalized();
@@ -308,9 +309,18 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
                 hToNormal = QVector3D::dotProduct(surfaceNormal, h);
                 L = pow(max(0.0, hToNormal), 100);
 
-                shadingR += (spheres[sIndex].spec[0] * (lightSpheres[lIndex].intensity[0] / pow(distanceToSphere/5, 1)) * L);
-                shadingG += (spheres[sIndex].spec[1] * (lightSpheres[lIndex].intensity[1] / pow(distanceToSphere/5, 1)) * L);
-                shadingB += (spheres[sIndex].spec[2] * (lightSpheres[lIndex].intensity[2] / pow(distanceToSphere/5, 1)) * L);
+                shadingR += (spheres[sIndex].spec[0] * (lightSpheres[lIndex].intensity[0] / pow(distanceToSphere/2, 1)) * L);
+                shadingG += (spheres[sIndex].spec[1] * (lightSpheres[lIndex].intensity[1] / pow(distanceToSphere/2, 1)) * L);
+                shadingB += (spheres[sIndex].spec[2] * (lightSpheres[lIndex].intensity[2] / pow(distanceToSphere/2, 1)) * L);
+
+//                /// Constrain dilution so that it doesn't dim the scene too much
+//                if (shadingR > 1.0 || shadingG > 1.0 || shadingB > 1.0) {
+//                    double maxDilution = max(shadingR, max(shadingG, shadingB));
+//                    shadingR = shadingR / maxDilution;
+//                    shadingG = shadingG / maxDilution;
+//                    shadingB = shadingB / maxDilution;
+//                }
+
 
             }
 
