@@ -35,13 +35,21 @@ void GLWidget::initializeGL()
 
     cameraDepth = 20.0;
 
+    /// Light Settings
+    sceneAmbience = 0.1;
+    lightFog = 1.5;
+
     // Initialize Spheres
-    spheres.append(Sphere(QVector3D(2.0, 8.0, -2.0), 2.0, 0.7, 0.7, 0.7));
-    spheres.append(Sphere(QVector3D(7.0, 7.0, 5.0), 2.0, 0.7, 0.7, 0.7));
+    double ambi[3] = {0.7, 0.7, 0.7};
+    spheres.append(Sphere(QVector3D(2.0, 7.0, 0.0), 2.0, ambi, ambi, ambi));
+    spheres.append(Sphere(QVector3D(8.0, 3.0, 0.0), 2.0, ambi, ambi, ambi));
 
     // Initialize Light Sphere
-    lightSpheres.append(LightSphere(QVector3D(7.0, 2.5, 8.0), 0.25));
-    lightSpheres.append(LightSphere(QVector3D(2.0, 5.0, 5.0), 0.25));
+    double white[3] = {1.0, 1.0, 1.0};
+    double yellow[3] = {.95, 0.95, 0.7};
+    lightSpheres.append(LightSphere(QVector3D(2.0, 5.0, 8.0), 0.25, yellow));
+
+    lightSpheres.append(LightSphere(QVector3D(8.0, 5.0, 8.0), 0.25, white));
 }
 
 void GLWidget::paintGL()
@@ -124,6 +132,7 @@ void GLWidget::makeImage( )
     QVector3D pixelPosition, ray, cameraPosition;
     QVector<double> rayTrace;
     double widthScale, heightScale;
+    double pixelColours[renderWidth][renderHeight][3];
 
     /// Initilize variables
     myimage = QImage(renderWidth, renderHeight, QImage::Format_RGB32);
@@ -155,11 +164,40 @@ void GLWidget::makeImage( )
             rayTrace = traceRay(ray, cameraPosition);
 
             if (rayTrace[0] != 0) {  // Ray intersects something
-                myimage.setPixel(i, (renderHeight - 1 - j), qRgb(rayTrace[1], rayTrace[2], rayTrace[3]));
+                pixelColours[i][(renderHeight - 1 - j)][0] = rayTrace[1];
+                pixelColours[i][(renderHeight - 1 - j)][1] = rayTrace[2];
+                pixelColours[i][(renderHeight - 1 - j)][2] = rayTrace[3];
             }
             else {  // Ray does not intersect anything
                 //myimage.setPixel(i, (renderHeight - 1 - j), qRgb(0, 0, 0));
             }
+        }
+    }
+    /// Find maximum colour dilution on the screen
+    double maxColourValue;
+    double maxDilution = 0.0;
+    for (int i = 0; i < renderWidth; i++) {
+        for (int j = 0; j < renderHeight; j++) {
+            if (pixelColours[i][j][0] > 255.0 || pixelColours[i][j][1] > 255.0 || pixelColours[i][j][2] > 255.0) {
+                maxColourValue = max(pixelColours[i][j][0], max(pixelColours[i][j][1], pixelColours[i][j][2]));
+                if (maxColourValue > maxDilution)
+                    maxDilution = maxColourValue;
+            }
+        }
+    }
+    // If the max dilution in the scene is greater then 255.0
+    if (maxDilution > 255.0) {
+        for (int i = 0; i < renderWidth; i++) {
+            for (int j = 0; j < renderHeight; j++) {
+
+            }
+        }
+    }
+
+    /// Setting the pixel colours
+    for (int i = 0; i < renderWidth; i++) {
+        for (int j = 0; j < renderHeight; j++) {
+            myimage.setPixel(i, j, qRgb(pixelColours[0], pixelColours[1], pixelColours[2]));
         }
     }
     qtimage = myimage.copy(0, 0,  myimage.width(), myimage.height());
@@ -184,9 +222,10 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
     /// Variables
     QVector< double > eval = QVector< double >(4);
     QVector3D sphereCenter, lightSphereCenter, cPcCVector;
-    QVector3D surfaceIntersect, surfaceNormal, lightVector, eyeVector, h;
+    QVector3D surfaceIntersect, surfaceNormal, lightVector, eyeVector, h, lightToCamera;
     double cc, v, disc, d, distanceToSurface, shadingR, shadingG, shadingB, angleToLight, L, hToNormal;
     double sphereRadius, sphereRadius2, lightSphereRadius, lightSphereRadius2, closestObject, distanceToSphere;
+    double normalToCamera;
 
     // Represents that we have not intersected anything yet
     eval[0] = 0;
@@ -230,23 +269,22 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
 
             surfaceNormal = (surfaceIntersect - sphereCenter).normalized();
 
-            // Before any light sources, the light is very faint
-            shadingR = 0.1;
-            shadingG = 0.1;
-            shadingB = 0.1;
+            /// Ambient Shading
+            shadingR = (spheres[sIndex].ambi[0] * sceneAmbience);
+            shadingG = (spheres[sIndex].ambi[1] * sceneAmbience);
+            shadingB = (spheres[sIndex].ambi[2] * sceneAmbience);
 
             /// See which light sources are acting on this surface intersect
             for (int lIndex = 0; lIndex < lightSpheres.size(); lIndex++) {
                 distanceToSphere = (lightSpheres[lIndex].center - surfaceIntersect).length();
-                //fallOff = 1 / pow(distanceToSphere /distanceToSphere*distanceToSphere, 5)
 
                 /// Lambertian Shading
                 lightVector = (lightSpheres[lIndex].center - surfaceIntersect).normalized();
                 angleToLight = QVector3D::dotProduct(surfaceNormal, lightVector);
                 L = max(0.0, angleToLight);
-                shadingR += (0.6 * (0.7 / pow(distanceToSphere/5, 2)) * L);
-                shadingG += (0.6 * (0.7 / pow(distanceToSphere/5, 2)) * L);
-                shadingB += (0.6 * (0.7 / pow(distanceToSphere/5, 2)) * L);
+                shadingR += (spheres[sIndex].diff[0] * (lightSpheres[lIndex].intensity[0] / pow(distanceToSphere/5, 1)) * L);
+                shadingG += (spheres[sIndex].diff[1] * (lightSpheres[lIndex].intensity[1] / pow(distanceToSphere/5, 1)) * L);
+                shadingB += (spheres[sIndex].diff[2] * (lightSpheres[lIndex].intensity[2] / pow(distanceToSphere/5, 1)) * L);
 
                 /// Blinn-Phong Shading
                 eyeVector = (cameraPosition - surfaceIntersect).normalized();
@@ -254,15 +292,16 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
                 hToNormal = QVector3D::dotProduct(surfaceNormal, h);
                 L = pow(max(0.0, hToNormal), 100);
 
-                shadingR += 0.8 * (0.7 / pow(distanceToSphere/3, 2)) * L;
-                shadingG += 0.8 * (0.7 / pow(distanceToSphere/3, 2)) * L;
-                shadingB += 0.8 * (0.7 / pow(distanceToSphere/3, 2)) * L;
+                shadingR += (spheres[sIndex].spec[0] * (lightSpheres[lIndex].intensity[0] / pow(distanceToSphere/5, 1)) * L);
+                shadingG += (spheres[sIndex].spec[1] * (lightSpheres[lIndex].intensity[1] / pow(distanceToSphere/5, 1)) * L);
+                shadingB += (spheres[sIndex].spec[2] * (lightSpheres[lIndex].intensity[2] / pow(distanceToSphere/5, 1)) * L);
 
             }
 
             // If any light value is over max
             if (shadingR > 1.0 || shadingG > 1.0 || shadingB > 1.0) {
                 double maxValue = max(shadingR, max(shadingG, shadingB));
+                maxValue += .05;  // To bring down the light levels a little more
                 shadingR = shadingR / maxValue;
                 shadingG = shadingG / maxValue;
                 shadingB = shadingB / maxValue;
@@ -294,26 +333,60 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
 
         // Difference between the lightCircleRadius and distance
         // from the lightSphereCenter to ray when they are perpendicular
-        double disc = (lightSphereRadius2 - (cc - v*v));
+        double disc1 = (lightSphereRadius2 - (cc - v*v));
+        double disc2 = ((lightSphereRadius2 + lightFog*lightFog) - (cc - v*v));
 
-        if (disc <= 0) {  // ray does not intersect the light sphere
+        if (disc2 <= 0) {  // ray does not intersect the light sphere or surrounding light radius
             // Add code
             continue;
         }
+        else if (disc1 <= 0) {  // Ray intersects the surrounding light fog, but not the light sphere
+            eval[0] = 1;
+            double d = sqrt(disc2);
+
+            double fogLevel = (.25 * ( d / (lightSphereRadius + lightFog)));
+            eval[1] += (255.0 * lightSpheres[lIndex].intensity[0] * fogLevel);
+            eval[2] += (255.0 * lightSpheres[lIndex].intensity[1] * fogLevel);
+            eval[3] += (255.0 * lightSpheres[lIndex].intensity[2] * fogLevel);
+
+
+
+            // If any light value is over max
+            if (eval[1] >= 255.0 || eval[2] >= 255.0 || eval[3] >= 255.0) {
+                qDebug() << "Broken Pixel: ";
+                qDebug() << "evalR: " << eval[1];
+                qDebug() << "evalR: " << eval[2];
+                qDebug() << "evalR: " << eval[3];
+                double maxValue = max(eval[1], max(eval[2], eval[3]));
+                maxValue += 10.0;  // To bring down the light levels a little more
+                eval[1] = 255.0 * (eval[1] / maxValue);
+                eval[2] = 255.0 * (eval[2] / maxValue);
+                eval[3] = 255.0 * (eval[3] / maxValue);
+                qDebug() << "Converted Pixel: ";
+                qDebug() << "evalR: " << eval[1];
+                qDebug() << "evalR: " << eval[2];
+                qDebug() << "evalR: " << eval[3];
+            }
+
+        }
         else {  // ray intersects the light sphere
-            double d = sqrt(disc);
-
+            double d = sqrt(disc1);
             QVector3D surfaceIntersect = cameraPosition + (v - d)*ray;
-            //qDebug() << "Surface Intersect: " << surfaceIntersect;
+            distanceToSurface = (surfaceIntersect - cameraPosition).length();
 
-            double distanceToSurface = (surfaceIntersect - cameraPosition).length();
-            //qDebug() << "Distance To Surface: " << distanceToSurface;
             if (distanceToSurface < closestObject) {
                 closestObject = distanceToSurface;
                 eval[0] = 2;
-                eval[1] = 255.0;
-                eval[2] = 255.0;
-                eval[3] = 255.0;
+
+                surfaceNormal = (surfaceIntersect - lightSpheres[lIndex].center).normalized();
+                lightToCamera = (cameraPosition - lightSpheres[lIndex].center).normalized();
+                normalToCamera = QVector3D::dotProduct(surfaceNormal, lightToCamera);
+
+                /// 255 is max; Each sphere has individual intensity ; falloff function for edges of light sources
+                eval[1] = (255.0 * pow(lightSpheres[lIndex].intensity[0], .5) * pow(normalToCamera, 0.5));
+                eval[2] = (255.0 * pow(lightSpheres[lIndex].intensity[1], .5) * pow(normalToCamera, 0.5));
+                eval[3] = (255.0 * pow(lightSpheres[lIndex].intensity[2], .5) * pow(normalToCamera, 0.5));
+
             }
 
         }
