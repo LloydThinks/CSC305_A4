@@ -44,13 +44,13 @@ void GLWidget::initializeGL()
     double diff[3] = {0.7, 0.7, 0.7};
     double spec[3] = {0.6, 0.6, 0.6};
     spheres.append(Sphere(QVector3D(3.0, 7.0, 5.0), 2.0, ambi, diff, spec));
-    spheres.append(Sphere(QVector3D(8.0, 3.0, 4.0), 2.0, ambi, diff, spec));
+    spheres.append(Sphere(QVector3D(8.0, 3.0, 6.0), 2.0, ambi, diff, spec));
 
     // Initialize Light Sphere
     double white[3] = {0.8, 0.8, 0.8};
     double yellow[3] = {0.6, 0.6, 0.42};
     lightSpheres.append(LightSphere(QVector3D(2.0, 3.0, 6.0), 0.25, yellow));
-    lightSpheres.append(LightSphere(QVector3D(8.0, 5.0, 7.0), 0.25, white));
+    lightSpheres.append(LightSphere(QVector3D(8.0, 5.0, 3.0), 0.25, white));
 }
 
 void GLWidget::paintGL()
