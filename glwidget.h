@@ -97,6 +97,8 @@ private:
 
     /// Additional Functions
     QVector< double > traceRay(QVector3D ray, QVector3D cameraPosition);
+    QVector< double > sphereIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
+    QVector< double > lightIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
 
     /// Additional Variables
     double sceneAmbience, cameraDepth, lightFog;
