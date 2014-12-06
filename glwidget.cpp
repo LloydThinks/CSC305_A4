@@ -248,6 +248,7 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
     // Initialize the closest object to infinity, so that anything is less than that
     closestObject = INFINITY;
 
+    QVector< double > sphereIntersect = sphereIntersection();
 
     /// Check ray against every sphere in world space
     for (int sIndex = 0; sIndex < spheres.size(); sIndex++) {
