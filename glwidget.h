@@ -40,17 +40,41 @@ class GLWidget : public QGLWidget
             spec[2] = s[2];
         }
     };
-    struct LightSphere {
+    struct PointLight {
         QVector3D center;
-        double radius;
         double intensity[3];
-        LightSphere() {}
-        LightSphere(QVector3D c, double r, double intens[3]) {
+        PointLight() {}
+        PointLight(QVector3D c, double intens[3]) {
             center = c;
-            radius = r;
             intensity[0] = intens[0];
             intensity[1] = intens[1];
             intensity[2] = intens[2];
+        }
+    };
+    struct AreaLight {
+
+    };
+    struct Triangle {
+        QVector3D a;
+        QVector3D b;
+        QVector3D c;
+        double ambi[3];
+        double diff[3];
+        double spec[3];
+        Triangle() {}
+        Triangle(QVector3D va, QVector3D vb, QVector3D vc, double la[3], double ld[3], double ls[3]) {
+            a = va;
+            b = vb;
+            c = vc;
+            ambi[0] = la[0];
+            ambi[1] = la[1];
+            ambi[2] = la[2];
+            diff[0] = ld[0];
+            diff[1] = ld[1];
+            diff[2] = ld[2];
+            spec[0] = ls[0];
+            spec[1] = ls[1];
+            spec[2] = ls[2];
         }
     };
 
@@ -99,11 +123,13 @@ private:
     QVector< double > traceRay(QVector3D ray, QVector3D cameraPosition);
     QVector< double > sphereIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
     QVector< double > lightIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
+    QVector< double > triangleIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
 
     /// Additional Variables
     double sceneAmbience, cameraDepth, lightFog;
     QVector< Sphere > spheres;
-    QVector< LightSphere > lightSpheres;
+    QVector< PointLight > pointLights;
+    QVector< Triangle > triangles;
 
 };
 
