@@ -248,7 +248,7 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
 {
     /// Declarations and Initilizations
     QVector< double > eval(5);  // Vector to be returned
-    QVector3D center, EO, a, b, c, d, e;
+    QVector3D center, EO, a, b, c, d, e, myNormal;
     double radius, cc, v, disc, distanceToSurface, divisor, rho, beta;
 
     eval[0] = 0;
@@ -277,13 +277,21 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
         if (disc > 0) { // ray intersects the sphere
             distanceToSurface = (v - sqrt(disc));
 
+            // Check if we are intersecting the sphere we are in
+            myNormal = (origin - center).normalized();
+            if (QVector3D::dotProduct(myNormal, ray) > 0.0) {
+                continue;
+            }
+
             if (distanceToSurface < range) {
                 range = distanceToSurface;
+
+                QVector3D surfaceIntersect = origin + distanceToSurface*ray;
                 eval[0] = 3;  // Ray intersects at least one sphere
                 eval[1] = sIndex;
-                eval[2] = (origin + distanceToSurface*ray).x();
-                eval[3] = (origin + distanceToSurface*ray).y();
-                eval[4] = (origin + distanceToSurface*ray).z();
+                eval[2] = surfaceIntersect.x();
+                eval[3] = surfaceIntersect.y();
+                eval[4] = surfaceIntersect.z();
             }
         }
     }
@@ -329,7 +337,6 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
         b = triangles[tIndex].b;
         c = triangles[tIndex].c;
 
-
         divisor = QMatrix4x4((a.x() - b.x()), (a.x() - c.x()), (d.x()), 0.0,\
                                     (a.y() - b.y()), (a.y() - c.y()), (d.y()), 0.0,\
                                     (a.z() - b.z()), (a.z() - c.z()), (d.z()), 0.0,\
@@ -349,9 +356,15 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
                                     (a.z() - b.z()), (a.z() - c.z()), (a.z() - e.z()), 0.0,\
                                     0.0, 0.0, 0.0, 1.0).determinant() / divisor;
 
+        // Check if we are intersecting the sphere we are in
+        if (QVector3D::dotProduct(triangles[tIndex].normal, ray) > 0.0) {
+            continue;
+        }
+
+
         if (distanceToSurface < range) {
             range = distanceToSurface;
-            eval[0] = 4;  // Plane has been intersected
+            eval[0] = 4;  // Triangle has been intersected
             eval[1] = tIndex;
             eval[2] = (origin + distanceToSurface*ray).x();
             eval[3] = (origin + distanceToSurface*ray).y();
@@ -382,7 +395,7 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
     QVector3D surfaceIntersect, surfaceNormal, surfaceToLight, eyeVector, h;
     double ambi[3], diff[3], spec[3], specReflec;
     double shadingR, shadingG, shadingB, surfaceToLightDistance, intensityR, intensityG, intensityB;
-    double fallOff, lightMagnitude, L;
+    double fallOff, lightMagnitude, L1, L2;
 
     surfaceIntersect = QVector3D(intersectInfo[2], intersectInfo[3], intersectInfo[4]);
 
@@ -435,11 +448,6 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
         surfaceToLightDistance = surfaceToLight.length();
         surfaceToLight.normalize();
 
-        /// Is there any objects in the way?  If so, shadow exists instead
-//        QVector< double > checkerino = intersects(ray, origin, surfaceToLightDistance);
-//        if ( checkerino[0] > 0 )
-//            continue;
-
         intensityR = pointLights[lIndex].intensity[0];
         intensityG = pointLights[lIndex].intensity[1];
         intensityB = pointLights[lIndex].intensity[2];
@@ -447,21 +455,34 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
 
         /// Lambertian Shading
         lightMagnitude = QVector3D::dotProduct(surfaceNormal, surfaceToLight);
-        L = max(0.0, lightMagnitude);
-
-        shadingR += (diff[0] * (intensityR / fallOff) * L);
-        shadingG += (diff[1] * (intensityG / fallOff) * L);
-        shadingB += (diff[2] * (intensityB / fallOff) * L);
+        L1 = max(0.0, lightMagnitude);
 
         /// Blinn-Phong Shading
         eyeVector = (origin - surfaceIntersect).normalized();
         h = (eyeVector + surfaceToLight).normalized();
         lightMagnitude = QVector3D::dotProduct(surfaceNormal, h);
-        L = pow(max(0.0, lightMagnitude), specReflec);
+        L2 = pow(max(0.0, lightMagnitude), specReflec);
 
-        shadingR += (spec[0] * (intensityR / fallOff) * L);
-        shadingG += (spec[1] * (intensityG / fallOff) * L);
-        shadingB += (spec[2] * (intensityB / fallOff) * L);
+        /// If light is acting on this point, check for intermediate objects (to create shadows)
+        if ((L1 + L2) != 0) {
+            QVector< double > check = intersects(surfaceToLight, surfaceIntersect, surfaceToLightDistance);
+            if ( check[0] == 3 || check[0] == 4) {
+                QVector3D surfaceFound = QVector3D(check[2], check[3], check[4]);
+                double dist = (surfaceFound - surfaceIntersect).length();
+                //qDebug() << "Distance from Target Object to shadow creator: " << dist;
+                continue;
+            }
+        }
+
+
+        /// Apply Lambertian followed by Blinn-Phong
+        shadingR += (diff[0] * (intensityR / fallOff) * L1);
+        shadingG += (diff[1] * (intensityG / fallOff) * L1);
+        shadingB += (diff[2] * (intensityB / fallOff) * L1);
+
+        shadingR += (spec[0] * (intensityR / fallOff) * L2);
+        shadingG += (spec[1] * (intensityG / fallOff) * L2);
+        shadingB += (spec[2] * (intensityB / fallOff) * L2);
 
     }
 
