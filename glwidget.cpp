@@ -49,11 +49,15 @@ void GLWidget::initializeGL()
     spheres.append(Sphere(QVector3D(8.0, 3.0, 3.0), 2.0, 100, ambi, diff, spec));
     spheres.append(Sphere(QVector3D(8.0, 6.0, 5.0), 0.5, 100, ambi, diff, spec));
 
-    // Initilize Triangles
     triangles = QVector< Triangle >();
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 5.0),
-                              QVector3D(0.0, 5.0, -1.0),
-                              QVector3D(5.0, 0.0, 5.0), 100, ambi, diff, spec));
+    // Draw Room - Back Wall
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(0.0, 10.0, 0.0), QVector3D(10.0, 10.0, 0.0), 100, ambi, diff, spec));
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(10.0, 10.0, 0.0), QVector3D(10.0, 0.0, 0.0), 100, ambi, diff, spec));
+
+//    triangles.append(Triangle(QVector3D(0.0, 0.0, 5.0),
+//                              QVector3D(0.0, 5.0, -1.0),
+//                              QVector3D(5.0, 0.0, 5.0),
+//                              100, ambi, diff, spec));
 
     // Initialize Light Sphere
     double white[3] = {0.8, 0.8, 0.8};
@@ -277,13 +281,7 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
         if (disc > 0) { // ray intersects the sphere
             distanceToSurface = (v - sqrt(disc));
 
-            // Check if we are intersecting the sphere we are in
-            myNormal = (origin - center).normalized();
-            if (QVector3D::dotProduct(myNormal, ray) > 0.0) {
-                continue;
-            }
-
-            if (distanceToSurface < range) {
+            if (distanceToSurface > 0.01 && distanceToSurface < range) {
                 range = distanceToSurface;
 
                 QVector3D surfaceIntersect = origin + distanceToSurface*ray;
@@ -341,26 +339,21 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
                                     (a.y() - b.y()), (a.y() - c.y()), (d.y()), 0.0,\
                                     (a.z() - b.z()), (a.z() - c.z()), (d.z()), 0.0,\
                                     0.0, 0.0, 0.0, 1.0).determinant();
-        rho     = QMatrix4x4((a.x() - b.x()), (a.x() - e.x()), (d.x()), 0.0,\
-                                    (a.y() - b.y()), (a.y() - e.y()), (d.y()), 0.0,\
-                                    (a.z() - b.z()), (a.z() - e.z()), (d.z()), 0.0,\
-                                    0.0, 0.0, 0.0, 1.0).determinant() / divisor;
-        if (rho < 0 || rho > 1) { continue; } // Does not intersect
-        beta    = QMatrix4x4((a.x() - e.x()), (a.x() - c.x()), (d.x()), 0.0,\
-                                    (a.y() - e.y()), (a.y() - c.y()), (d.y()), 0.0,\
-                                    (a.z() - e.z()), (a.z() - c.z()), (d.z()), 0.0,\
-                                    0.0, 0.0, 0.0, 1.0).determinant() / divisor;
-        if (beta < 0 || beta > (1 - rho)) { continue; } // Does not intersect
         distanceToSurface = QMatrix4x4((a.x() - b.x()), (a.x() - c.x()), (a.x() - e.x()), 0.0,\
                                     (a.y() - b.y()), (a.y() - c.y()), (a.y() - e.y()), 0.0,\
                                     (a.z() - b.z()), (a.z() - c.z()), (a.z() - e.z()), 0.0,\
                                     0.0, 0.0, 0.0, 1.0).determinant() / divisor;
-
-        // Check if we are intersecting the sphere we are in
-        if (QVector3D::dotProduct(triangles[tIndex].normal, ray) > 0.0) {
-            continue;
-        }
-
+        if (distanceToSurface < 0.01 || distanceToSurface > range) continue;  // Does not intersect
+        rho     = QMatrix4x4((a.x() - b.x()), (a.x() - e.x()), (d.x()), 0.0,\
+                                    (a.y() - b.y()), (a.y() - e.y()), (d.y()), 0.0,\
+                                    (a.z() - b.z()), (a.z() - e.z()), (d.z()), 0.0,\
+                                    0.0, 0.0, 0.0, 1.0).determinant() / divisor;
+        if (rho < 0 || rho > 1) continue; // Does not intersect
+        beta    = QMatrix4x4((a.x() - e.x()), (a.x() - c.x()), (d.x()), 0.0,\
+                                    (a.y() - e.y()), (a.y() - c.y()), (d.y()), 0.0,\
+                                    (a.z() - e.z()), (a.z() - c.z()), (d.z()), 0.0,\
+                                    0.0, 0.0, 0.0, 1.0).determinant() / divisor;
+        if (beta < 0 || beta > (1 - rho)) continue; // Does not intersect
 
         if (distanceToSurface < range) {
             range = distanceToSurface;
@@ -465,13 +458,8 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
 
         /// If light is acting on this point, check for intermediate objects (to create shadows)
         if ((L1 + L2) != 0) {
-            QVector< double > check = intersects(surfaceToLight, surfaceIntersect, surfaceToLightDistance);
-            if ( check[0] == 3 || check[0] == 4) {
-                QVector3D surfaceFound = QVector3D(check[2], check[3], check[4]);
-                double dist = (surfaceFound - surfaceIntersect).length();
-                //qDebug() << "Distance from Target Object to shadow creator: " << dist;
-                continue;
-            }
+            double check = (intersects(surfaceToLight, surfaceIntersect, surfaceToLightDistance))[0];
+            if ( check == 3 || check == 4) continue;  // Intersection
         }
 
 
