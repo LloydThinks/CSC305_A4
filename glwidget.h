@@ -50,10 +50,20 @@ class GLWidget : public QGLWidget
         }
     };
     struct AreaLight {
-    AreaLight() {}
-//    AreaLight() {
-
-//    }
+        QVector3D a, b, c, d;
+        QVector3D normal;
+        double intensity[3];
+        AreaLight() {}
+        AreaLight(QVector3D ta, QVector3D tb, QVector3D tc, QVector3D td, double intens[3]) {
+            a = ta;
+            b = tb;
+            c = tc;
+            d = td;
+            intensity[0] = intens[0];
+            intensity[1] = intens[1];
+            intensity[2] = intens[2];
+            normal = QVector3D::crossProduct((c - a), (b - a)).normalized();
+        }
     };
     struct Triangle {
         QVector3D a, b, c, normal;
@@ -130,10 +140,11 @@ private:
     QVector< double > triangleIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
 
     /// Additional Variables
-    double sceneAmbience, cameraDepth, lightFog;
+    double sceneAmbience, lightFog, picturePlaneZ, cameraToPicturePlaneDistance, lightFallOff;
     QVector< Sphere > spheres;
     QVector< PointLight > pointLights;
     QVector< Triangle > triangles;
+    QVector< AreaLight > areaLights;
 
 };
 

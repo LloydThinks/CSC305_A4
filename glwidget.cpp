@@ -33,39 +33,64 @@ void GLWidget::initializeGL()
     glLoadIdentity();
     glPointSize(5);
 
-    cameraDepth = 20.0;
+    cameraToPicturePlaneDistance = 10.0;
+    picturePlaneZ = 12.0;
 
     /// Light Settings
     sceneAmbience = 0.2;
+    lightFallOff = 4.0;
     lightFog = 1.0;
 
+    /// Spheres
     // Initialize Spheres
     double ambi[3] = {0.7, 0.7, 0.7};
     double diff[3] = {0.7, 0.7, 0.7};
     double spec[3] = {0.6, 0.6, 0.6};
-
     spheres = QVector< Sphere >();
-    spheres.append(Sphere(QVector3D(3.0, 7.0, 5.0), 2.0, 100, ambi, diff, spec));
-    spheres.append(Sphere(QVector3D(8.0, 3.0, 3.0), 2.0, 100, ambi, diff, spec));
+    spheres.append(Sphere(QVector3D(3.0, 3.0, 5.0), 1.0, 100, ambi, diff, spec));
+    spheres.append(Sphere(QVector3D(8.0, 3.0, 3.0), 1.0, 100, ambi, diff, spec));
     spheres.append(Sphere(QVector3D(8.0, 6.0, 5.0), 0.5, 100, ambi, diff, spec));
 
-    triangles = QVector< Triangle >();
-    // Draw Room - Back Wall
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(0.0, 10.0, 0.0), QVector3D(10.0, 10.0, 0.0), 100, ambi, diff, spec));
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(10.0, 10.0, 0.0), QVector3D(10.0, 0.0, 0.0), 100, ambi, diff, spec));
-
-//    triangles.append(Triangle(QVector3D(0.0, 0.0, 5.0),
-//                              QVector3D(0.0, 5.0, -1.0),
-//                              QVector3D(5.0, 0.0, 5.0),
-//                              100, ambi, diff, spec));
-
-    // Initialize Light Sphere
-    double white[3] = {0.8, 0.8, 0.8};
+    /// Light Sources
+    // Initialize Point Lights
+    double white[3] = {1.0, 1.0, 1.0};
+    double red[3] = {1.0, 0.6, 0.6};
     double yellow[3] = {0.6, 0.6, 0.42};
     pointLights = QVector< PointLight >();
-    pointLights.append(PointLight(QVector3D(2.0, 3.0, 4.0), yellow));
-    pointLights.append(PointLight(QVector3D(8.0, 8.0, 6.0), white));
+    //pointLights.append(PointLight(QVector3D(5.0, 3.0, 5.0), yellow));
+    //pointLights.append(PointLight(QVector3D(8.0, 8.0, 6.0), white));
+    // Initialize Area Lights
+    areaLights = QVector< AreaLight >();
+    areaLights.append(AreaLight(QVector3D(4.0, 10.0, 6.0), QVector3D(6.0, 10.0, 6.0),
+                                QVector3D(6.0, 10.0, 4.0), QVector3D(4.0, 10.0, 4.0), white));
 
+    /// Boxes
+    double bambi[3] = {0.6, 0.6, 0.6};
+    double bdiff[3] = {0.7, 0.7, 0.7};
+    double bspec[3] = {0.6, 0.6, 0.6};
+    triangles = QVector< Triangle >();
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 10.0, 10.0), QVector3D(0.0, 10.0, 0.0), 100, bambi, bdiff, bspec));
+
+    /// Room Triangles
+    double wambi[3] = {0.6, 0.6, 0.6};
+    double wdiff[3] = {0.7, 0.7, 0.7};
+    double wspec[3] = {0.6, 0.6, 0.6};
+
+    // Draw Room - Left Wall
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 10.0, 10.0), QVector3D(0.0, 10.0, 0.0), 100, wambi, wdiff, wspec));
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 10.0, 0.0), QVector3D(0.0, 0.0, 0.0), 100, wambi, wdiff, wspec));
+
+    // Draw Room - Back Wall
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(0.0, 10.0, 0.0), QVector3D(10.0, 10.0, 0.0), 100, wambi, wdiff, wspec));
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(10.0, 10.0, 0.0), QVector3D(10.0, 0.0, 0.0), 100, wambi, wdiff, wspec));
+
+    // Draw Room - Right Wall
+    triangles.append(Triangle(QVector3D(10.0, 0.0, 0.0), QVector3D(10.0, 10.0, 0.0), QVector3D(10.0, 10.0, 10.0), 100, wambi, wdiff, wspec));
+    triangles.append(Triangle(QVector3D(10.0, 0.0, 0.0), QVector3D(10.0, 10.0, 10.0), QVector3D(10.0, 0.0, 10.0), 100, wambi, wdiff, wspec));
+
+    // Draw Room - Right Wall
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 0.0, 0.0), QVector3D(10.0, 0.0, 0.0), 100, wambi, wdiff, wspec));
+    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(10.0, 0.0, 0.0), QVector3D(10.0, 0.0, 10.0), 100, wambi, wdiff, wspec));
 }
 
 void GLWidget::paintGL()
@@ -152,7 +177,7 @@ void GLWidget::makeImage()
     myimage = QImage(renderWidth, renderHeight, QImage::Format_RGB32);
     widthScale = 10.0;
     heightScale = renderHeight / (renderWidth / widthScale);
-    cameraPosition = QVector3D(widthScale/2.0, heightScale/2.0, cameraDepth);
+    cameraPosition = QVector3D(widthScale/2.0, heightScale/2.0, picturePlaneZ + cameraToPicturePlaneDistance);
 
     qDebug() << "RenderWidth: " << renderWidth;
     qDebug() << "RenderHeight: " << renderHeight;
@@ -169,7 +194,8 @@ void GLWidget::makeImage()
             pixelColours[i][j][2] = 0.0;
 
             // The current pixel we are trying to draw
-            pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth), ((double(j) * heightScale) / renderHeight), 10.0);
+            pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth),
+                                      ((double(j) * heightScale) / renderHeight), picturePlaneZ);
 
             if (i == renderWidth/2 && j == renderHeight/2)
                 qDebug() << "PlaneCenter: " << pixelPosition;
@@ -252,10 +278,90 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
 {
     /// Declarations and Initilizations
     QVector< double > eval(5);  // Vector to be returned
-    QVector3D center, EO, a, b, c, d, e, myNormal;
+    QVector3D center, EO, a, b, c, d, e;
     double radius, cc, v, disc, distanceToSurface, divisor, rho, beta;
 
     eval[0] = 0;
+
+    /// Check ray against every point light source in world space
+    for (int lIndex = 0; lIndex < pointLights.size(); lIndex++) {
+
+        // The light circle to be traced
+        center = pointLights[lIndex].center;
+
+        // Vector from the cameraPoint to the lightSphereCenter
+        EO = (center - origin);
+        // Magnitude of cPcCVector, squared
+        cc = QVector3D::dotProduct(EO, EO);
+
+        // Magnitude of ray from the cameraPoint to when it is
+        // perpendicular to the normal of the lightSphereCenter
+        v = QVector3D::dotProduct(EO, ray);
+
+        // Difference between the lightCircleRadius and distance
+        // from the lightSphereCenter to ray when they are perpendicular
+        disc = ((0.0625) - (cc - v*v));
+
+        if (disc > 0) {
+            distanceToSurface = (v - sqrt(disc));
+
+            if (distanceToSurface < range) {
+                range = distanceToSurface;
+                eval[0] = 1;  // Ray intersects the point light
+                eval[1] = lIndex;
+                eval[2] = (origin + distanceToSurface*ray).x();
+                eval[3] = (origin + distanceToSurface*ray).y();
+                eval[4] = (origin + distanceToSurface*ray).z();
+            }
+        }
+    }
+
+    /// Check ray against every area light source in the world space
+    for (int lIndex = 0; lIndex < areaLights.size(); lIndex++) {
+        d = ray;
+        e = origin;
+        for (int lightHalf = 0; lightHalf < 2; lightHalf++) {
+            if (lightHalf == 0) {
+                a = areaLights[lIndex].a;
+                b = areaLights[lIndex].b;
+                c = areaLights[lIndex].c;
+            }
+            else {
+                a = areaLights[lIndex].a;
+                b = areaLights[lIndex].c;
+                c = areaLights[lIndex].d;
+            }
+
+            divisor = QMatrix4x4((a.x() - b.x()), (a.x() - c.x()), (d.x()), 0.0,\
+                                        (a.y() - b.y()), (a.y() - c.y()), (d.y()), 0.0,\
+                                        (a.z() - b.z()), (a.z() - c.z()), (d.z()), 0.0,\
+                                        0.0, 0.0, 0.0, 1.0).determinant();
+            distanceToSurface = QMatrix4x4((a.x() - b.x()), (a.x() - c.x()), (a.x() - e.x()), 0.0,\
+                                        (a.y() - b.y()), (a.y() - c.y()), (a.y() - e.y()), 0.0,\
+                                        (a.z() - b.z()), (a.z() - c.z()), (a.z() - e.z()), 0.0,\
+                                        0.0, 0.0, 0.0, 1.0).determinant() / divisor;
+            if (distanceToSurface < 0.01 || distanceToSurface > range) continue;  // Does not intersect
+            rho     = QMatrix4x4((a.x() - b.x()), (a.x() - e.x()), (d.x()), 0.0,\
+                                        (a.y() - b.y()), (a.y() - e.y()), (d.y()), 0.0,\
+                                        (a.z() - b.z()), (a.z() - e.z()), (d.z()), 0.0,\
+                                        0.0, 0.0, 0.0, 1.0).determinant() / divisor;
+            if (rho < 0 || rho > 1) continue; // Does not intersect
+            beta    = QMatrix4x4((a.x() - e.x()), (a.x() - c.x()), (d.x()), 0.0,\
+                                        (a.y() - e.y()), (a.y() - c.y()), (d.y()), 0.0,\
+                                        (a.z() - e.z()), (a.z() - c.z()), (d.z()), 0.0,\
+                                        0.0, 0.0, 0.0, 1.0).determinant() / divisor;
+            if (beta < 0 || beta > (1 - rho)) continue; // Does not intersect
+
+            if (distanceToSurface < range) {
+                range = distanceToSurface;
+                eval[0] = 2;  // Area light has been intersected
+                eval[1] = lIndex;
+                eval[2] = (origin + distanceToSurface*ray).x();
+                eval[3] = (origin + distanceToSurface*ray).y();
+                eval[4] = (origin + distanceToSurface*ray).z();
+            }
+        }
+    }
 
     /// Check ray against every sphere in world space
     for (int sIndex = 0; sIndex < spheres.size(); sIndex++) {
@@ -290,39 +396,6 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
                 eval[2] = surfaceIntersect.x();
                 eval[3] = surfaceIntersect.y();
                 eval[4] = surfaceIntersect.z();
-            }
-        }
-    }
-
-    /// Check ray against every light source in world space
-    for (int lIndex = 0; lIndex < pointLights.size(); lIndex++) {
-
-        // The light circle to be traced
-        center = pointLights[lIndex].center;
-
-        // Vector from the cameraPoint to the lightSphereCenter
-        EO = (center - origin);
-        // Magnitude of cPcCVector, squared
-        cc = QVector3D::dotProduct(EO, EO);
-
-        // Magnitude of ray from the cameraPoint to when it is
-        // perpendicular to the normal of the lightSphereCenter
-        v = QVector3D::dotProduct(EO, ray);
-
-        // Difference between the lightCircleRadius and distance
-        // from the lightSphereCenter to ray when they are perpendicular
-        disc = ((0.0625) - (cc - v*v));
-
-        if (disc > 0) {
-            distanceToSurface = (v - sqrt(disc));
-
-            if (distanceToSurface < range) {
-                range = distanceToSurface;
-                eval[0] = 1;  // Ray intersects the point light
-                eval[1] = lIndex;
-                eval[2] = (origin + distanceToSurface*ray).x();
-                eval[3] = (origin + distanceToSurface*ray).y();
-                eval[4] = (origin + distanceToSurface*ray).z();
             }
         }
     }
@@ -436,6 +509,7 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
     shadingB = (ambi[2] * sceneAmbience);
 
     /// See which light sources are acting on this surface intersect
+    // Point Lights
     for (int lIndex = 0; lIndex < pointLights.size(); lIndex++) {
         surfaceToLight = pointLights[lIndex].center - surfaceIntersect;
         surfaceToLightDistance = surfaceToLight.length();
@@ -444,7 +518,7 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
         intensityR = pointLights[lIndex].intensity[0];
         intensityG = pointLights[lIndex].intensity[1];
         intensityB = pointLights[lIndex].intensity[2];
-        fallOff = pow(surfaceToLightDistance/2, 1);
+        fallOff = pow(surfaceToLightDistance/lightFallOff, 1);
 
         /// Lambertian Shading
         lightMagnitude = QVector3D::dotProduct(surfaceNormal, surfaceToLight);
@@ -462,7 +536,6 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
             if ( check == 3 || check == 4) continue;  // Intersection
         }
 
-
         /// Apply Lambertian followed by Blinn-Phong
         shadingR += (diff[0] * (intensityR / fallOff) * L1);
         shadingG += (diff[1] * (intensityG / fallOff) * L1);
@@ -473,7 +546,77 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
         shadingB += (spec[2] * (intensityB / fallOff) * L2);
 
     }
+    // Area Lights
+    for (int lIndex = 0; lIndex < areaLights.size(); lIndex++) {
+        // MOVE A LOT OF THIS INTO CONTSTRUCTOR / PRE-CALCULATIONS FUNCTION
+        double unitSegs = 5;  // Every 1 unit of area light space gets unitSegs*(unitSegs+1) segments
+        QVector3D hVector = areaLights[lIndex].b - areaLights[lIndex].a;
+        QVector3D vVector = areaLights[lIndex].d - areaLights[lIndex].a;
+        double numHSteps = (hVector.length() * unitSegs) + 1;
+        double numVSteps = (vVector.length() * unitSegs) + 1;
 
+        QVector3D hStep = hVector.normalized() / unitSegs;
+        QVector3D vStep = vVector.normalized() / unitSegs;
+
+
+        // Code needed here
+        intensityR = areaLights[lIndex].intensity[0] / (numHSteps*numVSteps);
+        intensityG = areaLights[lIndex].intensity[1] / (numHSteps*numVSteps);
+        intensityB = areaLights[lIndex].intensity[2] / (numHSteps*numVSteps);
+
+        QVector3D horizontalAlign = areaLights[lIndex].a;
+        QVector3D currentPoint = horizontalAlign;
+
+        for (int i = 0; i < numVSteps; i++) {
+            for (int j = 0; j < numHSteps; j++) {
+
+                surfaceToLight = currentPoint - surfaceIntersect;
+                surfaceToLightDistance = surfaceToLight.length();
+                surfaceToLight.normalize();
+
+                fallOff = pow(surfaceToLightDistance/lightFallOff, 1);
+
+                /// Lambertian Shading
+                lightMagnitude = QVector3D::dotProduct(surfaceNormal, surfaceToLight);
+                L1 = max(0.0, lightMagnitude);
+
+                /// Blinn-Phong Shading
+                eyeVector = (origin - surfaceIntersect).normalized();
+                h = (eyeVector + surfaceToLight).normalized();
+                lightMagnitude = QVector3D::dotProduct(surfaceNormal, h);
+                L2 = pow(max(0.0, lightMagnitude), specReflec);
+
+                /// If light is acting on this point, check for intermediate objects (to create shadows)
+                if ((L1 + L2) != 0) {
+                    double check = (intersects(surfaceToLight, surfaceIntersect, surfaceToLightDistance))[0];
+                    if ( check == 3 || check == 4) continue;  // Intersection
+                }
+
+                /// Apply Lambertian followed by Blinn-Phong
+                shadingR += (diff[0] * (intensityR / fallOff) * L1);
+                shadingG += (diff[1] * (intensityG / fallOff) * L1);
+                shadingB += (diff[2] * (intensityB / fallOff) * L1);
+
+                shadingR += (spec[0] * (intensityR / fallOff) * L2);
+                shadingG += (spec[1] * (intensityG / fallOff) * L2);
+                shadingB += (spec[2] * (intensityB / fallOff) * L2);
+
+
+                currentPoint += hStep;  // Move currentPoint across the area light
+            }
+            horizontalAlign += vStep;  // Move horizontalAlign down the area light
+            currentPoint = horizontalAlign;  // Put the currentPoint back to horizontal edge
+        }
+
+
+    }
+    /// Constrain dilution so that it doesn't dim the scene too much
+    if (shadingR > 1.0 || shadingG > 1.0 || shadingB > 1.0) {
+        double maxDilution = max(shadingR, max(shadingG, shadingB));
+        shadingR = shadingR / maxDilution;
+        shadingG = shadingG / maxDilution;
+        shadingB = shadingB / maxDilution;
+    }
     eval[0] = shadingR;
     eval[1] = shadingG;
     eval[2] = shadingB;
@@ -502,6 +645,12 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D cameraPosition)
         eval[1] = pointColour[0];
         eval[2] = pointColour[1];
         eval[3] = pointColour[2];
+    }
+    else if (intersectInfo[0] == 2) {  // Area Light intersected
+        eval[0] = 1;
+        eval[1] = areaLights[intersectInfo[1]].intensity[0];
+        eval[2] = areaLights[intersectInfo[1]].intensity[1];
+        eval[3] = areaLights[intersectInfo[1]].intensity[2];
     }
     else if (intersectInfo[0] == 1) {
         eval[0] = 1;
@@ -574,6 +723,7 @@ QVector< double > GLWidget::traceRay2(QVector3D ray, QVector3D cameraPosition)
 
     return eval;
 }
+
 /* QVector< double > GLWidget::sphereIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject)
  *
  * Formal Parameters: ray - The ray to be traced in the scene
