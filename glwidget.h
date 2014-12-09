@@ -21,9 +21,9 @@ class GLWidget : public QGLWidget
 
     struct Sphere {
         QVector3D center;
-        double radius, ambi[3], diff[3], spec[3], specReflec;
+        double radius, ambi[3], diff[3], spec[3], reflec[3], specReflec;
         Sphere() {}
-        Sphere(QVector3D c, double r, double sr, double a[3], double d[3], double s[3]) {
+        Sphere(QVector3D c, double r, double sr, double a[3], double d[3], double s[3], double s2[3]) {
             center = c;
             radius = r;
             specReflec = sr;
@@ -36,6 +36,9 @@ class GLWidget : public QGLWidget
             spec[0] = s[0];
             spec[1] = s[1];
             spec[2] = s[2];
+            reflec[0] = s2[0];
+            reflec[1] = s2[1];
+            reflec[2] = s2[2];
         }
     };
     struct PointLight{
@@ -129,11 +132,11 @@ private:
     // keep the qtimage around for saving (one is a copy of the other
 
     /// Additional Functions
-    QVector< double > traceRay(QVector3D ray, QVector3D cameraPosition);
+    QVector< double > traceRay(QVector3D ray, QVector3D origin, int recursiveDepth);
     QVector< double > traceRay2(QVector3D ray, QVector3D cameraPosition);
 
     QVector< double > intersects(QVector3D ray, QVector3D origin, double range);
-    QVector< double > shadePoint(QVector3D ray, QVector3D origin, QVector<double> intersectInfo);
+    QVector< double > shadePoint(QVector3D ray, QVector3D origin, QVector<double> intersectInfo, int recursiveDepth);
 
     QVector< double > sphereIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
     QVector< double > lightIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
