@@ -33,13 +33,14 @@ void GLWidget::initializeGL()
     glLoadIdentity();
     glPointSize(5);
 
+    /// Scene Settings
     cameraToPicturePlaneDistance = 15.0;
     picturePlaneZ = 12.0;
 
     /// Light Settings
-    sceneAmbience = 0.2;
-    lightFallOff = 2.0;
-    lightFog = 1.0;
+    sceneAmbience = 0.2;  // Overall Ambience in the scene
+    lightPersistence = 2.0;   // Increase this number to fall off slower
+    unitSegs = 5;         // How dense area lights are
 
     /// Spheres
     spheres = QVector< Sphere >();
@@ -96,6 +97,8 @@ void GLWidget::initializeGL()
     // Draw Room - Floor
     triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 0.0, 0.0), QVector3D(10.0, 0.0, 0.0), 100, wambi, wdiff, wspec));
     triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(10.0, 0.0, 0.0), QVector3D(10.0, 0.0, 10.0), 100, wambi, wdiff, wspec));
+
+    preCalculate();
 }
 
 void GLWidget::paintGL()
@@ -117,24 +120,6 @@ void GLWidget::resizeGL( int w, int h )
     //cerr << "gl new size "<< w SEP h NL;
     renderWidth = w;
     renderHeight = h;
-}
-
-// no mouse events in this demo
-void GLWidget::mousePressEvent( QMouseEvent * )
-{
-}
-
-void GLWidget::mouseReleaseEvent( QMouseEvent *)
-{
-}
-
-void GLWidget::mouseMoveEvent ( QMouseEvent * )
-{
-}
-
-// wheel event
-void GLWidget::wheelEvent(QWheelEvent *)
-{
 }
 
 void GLWidget::openImage(QString fileBuf)
@@ -261,6 +246,40 @@ void GLWidget::makeImage()
 
     qtimage = myimage.copy(0, 0,  myimage.width(), myimage.height());
     prepareImageDisplay(&myimage);
+}
+
+void GLWidget::preCalculate() {
+    /// Declarations and Intializations
+    QVector3D hVector, vVector, hStep, vStep;
+    double hVectorLength, vVectorLength;
+    int numHSteps, numVSteps;
+
+    /// Area Light data
+    for (int lIndex = 0; lIndex < areaLights.size(); lIndex++) {
+        // Horizontal and Vertical Vectors that run the width and height of the area light
+        hVector = areaLights[lIndex].b - areaLights[lIndex].a;
+        vVector = areaLights[lIndex].d - areaLights[lIndex].a;
+        hVectorLength = hVector.length();
+        vVectorLength = vVector.length();
+
+        // Number of steps per pass over the width, and height
+        numHSteps = (hVectorLength * unitSegs);
+        numVSteps = (vVectorLength * unitSegs);
+
+        // Distance to increment the iterating point when calculating area light intensities
+        hStep = hVector / double(numHSteps);
+        vStep = vVector / double(numVSteps);
+
+        // Store this information into the area light for use later
+        areaLights[lIndex].numHSteps = numHSteps;
+        areaLights[lIndex].numVSteps = numVSteps;
+        areaLights[lIndex].hStep = hStep;
+        areaLights[lIndex].vStep = vStep;
+        areaLights[lIndex].pIntensity[0] = (areaLights[lIndex].intensity[0] / ((numHSteps+1)*(numVSteps+1)));
+        areaLights[lIndex].pIntensity[1] = (areaLights[lIndex].intensity[1] / ((numHSteps+1)*(numVSteps+1)));
+        areaLights[lIndex].pIntensity[2] = (areaLights[lIndex].intensity[2] / ((numHSteps+1)*(numVSteps+1)));
+    }
+
 }
 
 /* QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double range)
@@ -453,16 +472,18 @@ QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double r
  *                    intersectInfo[3] - Surface Intersect Y
  *                    intersectInfo[4] - Surface Intersect Z
  *
- * Returns:
+ * Returns: eval[0] - Red Colour value of the surface at intersectInfo
+ *          eval[0] - Green Colour value of the surface at intersectInfo
+ *          eval[0] - Blue Colour value of the surface at intersectInfo
  */
 QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<double> intersectInfo, int recursiveDepth)
 {
     /// Declarations and Initilializations
     QVector< double > eval(3), result;
-    QVector3D surfaceIntersect, surfaceNormal, surfaceToLight, eyeVector, h;
+    QVector3D surfaceIntersect, surfaceNormal, surfaceToLight, eyeVector, h, horizontalAlign, currentPoint, hStep, vStep;
     double ambi[3], diff[3], spec[3], reflec[3], specReflec;
     double shadingR, shadingG, shadingB, surfaceToLightDistance, intensityR, intensityG, intensityB;
-    double fallOff, lightMagnitude, L1, L2;
+    double fallOff, lightMagnitude, L1, L2, numHSteps, numVSteps;
 
     surfaceIntersect = QVector3D(intersectInfo[2], intersectInfo[3], intersectInfo[4]);
 
@@ -523,7 +544,7 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
         intensityR = pointLights[lIndex].intensity[0];
         intensityG = pointLights[lIndex].intensity[1];
         intensityB = pointLights[lIndex].intensity[2];
-        fallOff = pow(surfaceToLightDistance/lightFallOff, 1);
+        fallOff = surfaceToLightDistance/lightPersistence;
 
         /// Lambertian Shading
         lightMagnitude = QVector3D::dotProduct(surfaceNormal, surfaceToLight);
@@ -553,32 +574,25 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
     }
     // Area Lights
     for (int lIndex = 0; lIndex < areaLights.size(); lIndex++) {
-        // MOVE A LOT OF THIS INTO CONTSTRUCTOR / PRE-CALCULATIONS FUNCTION
-        double unitSegs = 5;  // Every 1 unit of area light space gets unitSegs*(unitSegs+1) segments
-        QVector3D hVector = areaLights[lIndex].b - areaLights[lIndex].a;
-        QVector3D vVector = areaLights[lIndex].d - areaLights[lIndex].a;
-        double numHSteps = (hVector.length() * unitSegs) + 1;
-        double numVSteps = (vVector.length() * unitSegs) + 1;
+        intensityR = areaLights[lIndex].pIntensity[0];
+        intensityG = areaLights[lIndex].pIntensity[1];
+        intensityB = areaLights[lIndex].pIntensity[2];
 
-        QVector3D hStep = hVector.normalized() / unitSegs;
-        QVector3D vStep = vVector.normalized() / unitSegs;
+        numVSteps = areaLights[lIndex].numVSteps;
+        numHSteps = areaLights[lIndex].numHSteps;
+        hStep = areaLights[lIndex].hStep;
+        vStep = areaLights[lIndex].vStep;
 
-        // Code needed here
-        intensityR = areaLights[lIndex].intensity[0] / (numHSteps*numVSteps);
-        intensityG = areaLights[lIndex].intensity[1] / (numHSteps*numVSteps);
-        intensityB = areaLights[lIndex].intensity[2] / (numHSteps*numVSteps);
-
-        QVector3D horizontalAlign = areaLights[lIndex].a;
-        QVector3D currentPoint = horizontalAlign;
+        horizontalAlign = areaLights[lIndex].a;
+        currentPoint = horizontalAlign;
 
         for (int i = 0; i <= numVSteps; i++) {
             for (int j = 0; j <= numHSteps; j++) {
-
                 surfaceToLight = currentPoint - surfaceIntersect;
                 surfaceToLightDistance = surfaceToLight.length();
                 surfaceToLight.normalize();
 
-                fallOff = surfaceToLightDistance/lightFallOff;
+                fallOff = surfaceToLightDistance/lightPersistence;
 
                 /// Lambertian Shading
                 lightMagnitude = QVector3D::dotProduct(surfaceNormal, surfaceToLight);
@@ -638,6 +652,22 @@ QVector< double > GLWidget::shadePoint(QVector3D ray, QVector3D origin, QVector<
     return eval;
 }
 
+/* QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D origin, int recursiveDepth)
+ *
+ * Formal Parameters: ray              - The ray to check intersections against
+ *                    origin           - The coordinates of where 'ray' originates from
+ *                    intersectInfo[0] - 3 if surface is a sphere
+ *                                     - 4 if surface is a triangle
+ *                    intersectInfo[1] - Index of object in respective storage
+ *                    intersectInfo[2] - Surface Intersect X
+ *                    intersectInfo[3] - Surface Intersect Y
+ *                    intersectInfo[4] - Surface Intersect Z
+ * Returns: eval[0] - 0 if nothing was intersected
+ *                  - 1 if something was intersected
+ *          eval[1] - Red Colour value of the surface intersected
+ *          eval[2] - Green Colour value of the surface intersected
+ *          eval[3] - Blue Colour value of the surface intersected
+ */
 QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D origin, int recursiveDepth)
 {
     /// Declarations and Initilizations

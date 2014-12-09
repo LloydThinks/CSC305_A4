@@ -22,8 +22,6 @@ Window::Window(QWidget *parent):QDialog(parent)
     //We need to attach our m_glWidget to glWidgetArea
     //All our drawings will be on glWidgetArea
     glWidgetArea->setWidget(m_glWidget);
-
-
 }
 
 void Window::openImage()

@@ -54,8 +54,9 @@ class GLWidget : public QGLWidget
     };
     struct AreaLight {
         QVector3D a, b, c, d;
-        QVector3D normal;
-        double intensity[3];
+        QVector3D normal, hStep, vStep;
+        double intensity[3], pIntensity[3];
+        int numHSteps, numVSteps;
         AreaLight() {}
         AreaLight(QVector3D ta, QVector3D tb, QVector3D tc, QVector3D td, double intens[3]) {
             a = ta;
@@ -114,14 +115,6 @@ protected:
     //its attached GLWidget
     void resizeGL(int w, int h);
 
-    //Handle mouse press event in scrollArea
-    void mousePressEvent(QMouseEvent * );
-    void mouseReleaseEvent(QMouseEvent * );
-    //Handle Mouse Move Event
-    void mouseMoveEvent(QMouseEvent * );
-    void wheelEvent(QWheelEvent * );  // for zoom
-
-
 private:
     void clear();
     int renderWidth, renderHeight;
@@ -132,22 +125,19 @@ private:
     // keep the qtimage around for saving (one is a copy of the other
 
     /// Additional Functions
+    void preCalculate();
     QVector< double > traceRay(QVector3D ray, QVector3D origin, int recursiveDepth);
-    QVector< double > traceRay2(QVector3D ray, QVector3D cameraPosition);
-
     QVector< double > intersects(QVector3D ray, QVector3D origin, double range);
     QVector< double > shadePoint(QVector3D ray, QVector3D origin, QVector<double> intersectInfo, int recursiveDepth);
 
-    QVector< double > sphereIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
-    QVector< double > lightIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
-    QVector< double > triangleIntersection(QVector3D ray, QVector3D cameraPosition, double closestObject);
 
     /// Additional Variables
-    double sceneAmbience, lightFog, picturePlaneZ, cameraToPicturePlaneDistance, lightFallOff;
+    double sceneAmbience, picturePlaneZ, cameraToPicturePlaneDistance, lightPersistence, unitSegs;
     QVector< Sphere > spheres;
     QVector< PointLight > pointLights;
     QVector< Triangle > triangles;
     QVector< AreaLight > areaLights;
+
 
 };
 
