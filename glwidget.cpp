@@ -34,70 +34,93 @@ void GLWidget::initializeGL()
     glPointSize(5);
 
     /// Scene Settings
-    cameraToPicturePlaneDistance = 15.0;
+    cameraToPicturePlaneDistance = 10.0;
     picturePlaneZ = 12.0;
 
     /// Light Settings
-    sceneAmbience = 0.2;  // Overall Ambience in the scene
-    lightPersistence = 2.0;   // Increase this number to fall off slower
-    unitSegs = 5;         // How dense area lights are
+    sceneAmbience = 0.4;  // Overall Ambience in the scene
+    lightPersistence = 5.0;   // Increase this number to allow light to travel further
+    unitSegs = 10;         // How dense area lights are
+
+    /// Colours: [0] - Red colour value
+    ///          [1] - Green colour value
+    ///          [2] - Blue colour value
+    QVector< double > white(3); white[0] = 1.0; white[1] = 1.0; white[2] = 1.0;
+    QVector< double > red(3); red[0] = 0.6196; red[1] = 0.0824; red[2] = 0.1353;
+    QVector< double > blue(3); blue[0] = 0.1215; blue[1] = 0.1804; blue[2] = 0.5686;
+
+    /// Materials: [0] - Ambient Coefficient
+    ///            [1] - Diffuse Coefficient
+    ///            [2] - Specular Coefficient
+    ///            [3] - Reflection Coefficient
+    QVector< QVector< double > > mirror(4, QVector< double >(3, 0.0));
+        mirror[3][0] = 1.0; mirror[3][1] = 1.0; mirror[3][2] = 1.0;
+    QVector< QVector< double > > eggShell(4, QVector< double >(3, 0.0));
+        eggShell[0][0] = 0.2; eggShell[0][1] = 0.2; eggShell[0][2] = 0.2;
+        eggShell[1][0] = 0.7; eggShell[1][1] = 0.7; eggShell[1][2] = 0.7;
+        eggShell[2][0] = 0.8; eggShell[2][1] = 0.8; eggShell[2][2] = 0.8;
+        eggShell[3][0] = 0.2; eggShell[3][1] = 0.2; eggShell[3][2] = 0.2;
+    QVector< QVector< double > > wall(4, QVector< double >(3, 0.0));
+        wall[0][0] = 0.2; wall[0][1] = 0.2; wall[0][2] = 0.2;
+        wall[1][0] = 0.8; wall[1][1] = 0.8; wall[1][2] = 0.8;
+        wall[2][0] = 0.3; wall[2][1] = 0.3; wall[2][2] = 0.3;
 
     /// Spheres
     spheres = QVector< Sphere >();
-    // Initialize Spheres
-    double ambi1[3] = {0.0, 0.0, 0.0};
-    double diff1[3] = {0.0, 0.0, 0.0};
-    double spec1[3] = {0.0, 0.0, 0.0};
-    double reflective1[3] = {1.0, 1.0, 1.0};
-    spheres.append(Sphere(QVector3D(3.0, 3.0, 4.0), 2.0, 100, ambi1, diff1, spec1, reflective1));
-    //double reflective2[3] = {0.2, 0.2, 0.2};
-    //spheres.append(Sphere(QVector3D(5.0, 7.0, 5.0), 1.0, 100, ambi, diff, spec));
-    //spheres.append(Sphere(QVector3D(5.0, 3.5, 5.0), 0.5, 100, ambi, diff, spec));
+    spheres.append(Sphere(QVector3D(2.5, 1.6, 4.0), 1.5, 100, mirror[0], mirror[1], mirror[2], mirror[3], white));
+    spheres.append(Sphere(QVector3D(8.0, 2.0, 7.0), 1.5, 10, eggShell[0], eggShell[1], eggShell[2], eggShell[3], white));
 
     /// Light Sources
     // Initialize Point Lights
-    double white[3] = {1.0, 1.0, 1.0};
-    double red[3] = {1.0, 0.6, 0.6};
-    double yellow[3] = {0.6, 0.6, 0.42};
     pointLights = QVector< PointLight >();
-    //pointLights.append(PointLight(QVector3D(7.0, 3.0, 8.0), white));
-    //pointLights.append(PointLight(QVector3D(8.0, 8.0, 6.0), white));
+    //pointLights.append(PointLight(QVector3D(5.0, 5.0, 5.0), white));
     // Initialize Area Lights
     areaLights = QVector< AreaLight >();
-    areaLights.append(AreaLight(QVector3D(4.0, 10.0, 6.0), QVector3D(6.0, 10.0, 6.0), QVector3D(6.0, 10.0, 4.0), QVector3D(4.0, 10.0, 4.0), white));
+    // Square Ceiling Light
+//    areaLights.append(AreaLight(QVector3D(4.0, 10.0, 6.0), QVector3D(6.0, 10.0, 6.0),
+//                                QVector3D(6.0, 10.0, 4.0), QVector3D(4.0, 10.0, 4.0), white));
+    // Rectangle Ceiling Light
+    areaLights.append(AreaLight(QVector3D(2.0, 10.0, 6.0), QVector3D(8.0, 10.0, 6.0),
+                                    QVector3D(8.0, 10.0, 4.0), QVector3D(2.0, 10.0, 4.0), white));
 
     /// Boxes
-    double bambi[3] = {0.6, 0.6, 0.6};
-    double bdiff[3] = {0.7, 0.7, 0.7};
-    double bspec[3] = {0.6, 0.6, 0.6};
-    triangles = QVector< Triangle >();
-    //triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 10.0, 10.0), QVector3D(0.0, 10.0, 0.0), 100, bambi, bdiff, bspec));
+    // PUT CODE HERE
 
-    /// Room Triangles
-    double wambi[3] = {0.5, 0.5, 0.5};
-    double wdiff[3] = {0.7, 0.7, 0.7};
-    double wspec[3] = {0.3, 0.3, 0.3};
-
+    /// Square Room Triangles
     // Draw Room - Left Wall
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 10.0, 10.0), QVector3D(0.0, 10.0, 0.0), 100, wambi, wdiff, wspec));
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 10.0, 0.0), QVector3D(0.0, 0.0, 0.0), 100, wambi, wdiff, wspec));
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 10, 10), QVector3D(0, 10, 0), 100, wall[0], wall[1], wall[2], red));
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 10, 0), QVector3D(0, 0, 0), 100, wall[0], wall[1], wall[2], red));
 
-    double wdiff1[3] = {0.08235, 0.6196, 0.564};
-    double wspec1[3] = {0.08235, 0.6196, 0.564};
     //Draw Room - Back Wall
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(0.0, 10.0, 0.0), QVector3D(10.0, 10.0, 0.0), 100, wambi, wdiff1, wspec1));
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 0.0), QVector3D(10.0, 10.0, 0.0), QVector3D(10.0, 0.0, 0.0), 100, wambi, wdiff1, wspec1));
+    triangles.append(Triangle(QVector3D(0, 0, 0), QVector3D(0, 10, 0), QVector3D(10, 10, 0), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(0, 0, 0), QVector3D(10, 10, 0), QVector3D(10, 0, 0), 100, wall[0], wall[1], wall[2], white));
 
-    double wdiff2[3] = {0.6196, 0.08235, 0.135};
-    double wspec2[3] = {0.6196, 0.08235, 0.135};
     // Draw Room - Right Wall
-    triangles.append(Triangle(QVector3D(10.0, 0.0, 0.0), QVector3D(10.0, 10.0, 0.0), QVector3D(10.0, 10.0, 10.0), 100, wambi, wdiff2, wspec2));
-    triangles.append(Triangle(QVector3D(10.0, 0.0, 0.0), QVector3D(10.0, 10.0, 10.0), QVector3D(10.0, 0.0, 10.0), 100, wambi, wdiff2, wspec2));
+    triangles.append(Triangle(QVector3D(10, 0, 0), QVector3D(10, 10, 0), QVector3D(10, 10, 10), 100, wall[0], wall[1], wall[2], blue));
+    triangles.append(Triangle(QVector3D(10, 0, 0), QVector3D(10, 10, 10), QVector3D(10, 0, 10), 100, wall[0], wall[1], wall[2], blue));
 
     // Draw Room - Floor
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(0.0, 0.0, 0.0), QVector3D(10.0, 0.0, 0.0), 100, wambi, wdiff, wspec));
-    triangles.append(Triangle(QVector3D(0.0, 0.0, 10.0), QVector3D(10.0, 0.0, 0.0), QVector3D(10.0, 0.0, 10.0), 100, wambi, wdiff, wspec));
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 0, 0), QVector3D(10, 0, 0), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(10, 0, 0), QVector3D(10, 0, 10), 100, wall[0], wall[1], wall[2], white));
 
+    /// Rectangle Room Triangles
+    /*
+    // Draw Room - Left Wall
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 10, 10), QVector3D(0, 10, -10), 100, wall[0], wall[1], wall[2], red));
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 10, -10), QVector3D(0, 0, -10), 100, wall[0], wall[1], wall[2], red));
+
+    //Draw Room - Back Wall
+    triangles.append(Triangle(QVector3D(0, 0, -10), QVector3D(0, 10, -10), QVector3D(10, 10, -10), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(0, 0, -10), QVector3D(10, 10, -10), QVector3D(10, 0, -10), 100, wall[0], wall[1], wall[2], white));
+
+    // Draw Room - Right Wall
+    triangles.append(Triangle(QVector3D(10, 0, -10), QVector3D(10, 10, -10), QVector3D(10, 10, 10), 100, wall[0], wall[1], wall[2], blue));
+    triangles.append(Triangle(QVector3D(10, 0, -10), QVector3D(10, 10, 10), QVector3D(10, 0, 10), 100, wall[0], wall[1], wall[2], blue));
+
+    // Draw Room - Floor
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 0, -10), QVector3D(10, 0, -10), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(10, 0, -10), QVector3D(10, 0, 10), 100, wall[0], wall[1], wall[2], white));
+    */
     preCalculate();
 }
 
@@ -161,7 +184,6 @@ void GLWidget::makeImage()
     QVector3D pixelPosition, ray, cameraPosition;
     QVector<double> rayTrace;
     double widthScale, heightScale;
-    QVector<QVector<QVector< double > > > pixelColours = QVector<QVector<QVector< double > > >(renderWidth);
 
     /// Initilize variables
     myimage = QImage(renderWidth, renderHeight, QImage::Format_RGB32);
@@ -175,13 +197,8 @@ void GLWidget::makeImage()
 
     /// Loop through the pixels on the screen, setting each one as you go
     for (int i = 0; i < renderWidth; i++) {
-        pixelColours[i] = QVector<QVector< double > >(renderHeight);
+        qDebug() << "Progress:" << double(i)/renderWidth*100 << "%";
         for (int j = 0; j < renderHeight; j++) {
-            pixelColours[i][j] = QVector< double >(3);
-            // Initialize pixel to be black
-            pixelColours[i][j][0] = 0.0;
-            pixelColours[i][j][1] = 0.0;
-            pixelColours[i][j][2] = 0.0;
 
             // The current pixel we are trying to draw
             pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth),
@@ -197,50 +214,13 @@ void GLWidget::makeImage()
 
             // Trace the ray and return important colour attributes
             rayTrace = traceRay(ray, cameraPosition, 2);
+
             if (rayTrace[0] != 0) {  // Ray intersects something
-                pixelColours[i][j][0] = rayTrace[1] * 255.0;
-                pixelColours[i][j][1] = rayTrace[2] * 255.0;
-                pixelColours[i][j][2] = rayTrace[3] * 255.0;
+                myimage.setPixel(i, (renderHeight - 1 - j), qRgb(rayTrace[1]*255.0, rayTrace[2]*255.0, rayTrace[3]*255.0));
             }
             else {  // Ray does not intersect anything
-                ;
-                //myimage.setPixel(i, (renderHeight - 1 - j), qRgb(0, 0, 0));
+                myimage.setPixel(i, (renderHeight - 1 - j), qRgb(0, 0, 0));
             }
-        }
-    }
-
-    /// Find maximum colour dilution on the screen
-    double maxColourValue;
-    double maxDilution = 0.0;
-    for (int i = 0; i < renderWidth; i++) {
-        for (int j = 0; j < renderHeight; j++) {
-            if (pixelColours[i][j][0] > 255.0 || pixelColours[i][j][1] > 255.0 || pixelColours[i][j][2] > 255.0) {
-                maxColourValue = max(pixelColours[i][j][0], max(pixelColours[i][j][1], pixelColours[i][j][2]));
-                if (maxColourValue > maxDilution)
-                    maxDilution = maxColourValue;
-            }
-        }
-    }
-
-    /// If the max dilution in the scene is greater then 255.0
-    if (maxDilution > 255.0) {
-        qDebug() << "Max Dilution: " << maxDilution;
-        double ratio = (255.0 / (maxDilution + 1.0));
-        for (int i = 0; i < renderWidth; i++) {
-            for (int j = 0; j < renderHeight; j++) {
-                pixelColours[i][j][0] = ratio * pixelColours[i][j][0];
-                pixelColours[i][j][1] = ratio * pixelColours[i][j][1];
-                pixelColours[i][j][2] = ratio * pixelColours[i][j][2];
-            }
-        }
-    }
-
-    /// Setting the pixel colours
-    for (int i = 0; i < renderWidth; i++) {
-        for (int j = 0; j < renderHeight; j++) {
-            myimage.setPixel(i, j, qRgb(pixelColours[i][(renderHeight - 1 - j)][0], \
-                                        pixelColours[i][(renderHeight - 1 - j)][1], \
-                                        pixelColours[i][(renderHeight - 1 - j)][2]));
         }
     }
 
@@ -279,7 +259,6 @@ void GLWidget::preCalculate() {
         areaLights[lIndex].pIntensity[1] = (areaLights[lIndex].intensity[1] / ((numHSteps+1)*(numVSteps+1)));
         areaLights[lIndex].pIntensity[2] = (areaLights[lIndex].intensity[2] / ((numHSteps+1)*(numVSteps+1)));
     }
-
 }
 
 /* QVector< double > GLWidget::intersects(QVector3D ray, QVector3D origin, double range)

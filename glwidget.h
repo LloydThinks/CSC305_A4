@@ -21,72 +21,71 @@ class GLWidget : public QGLWidget
 
     struct Sphere {
         QVector3D center;
-        double radius, ambi[3], diff[3], spec[3], reflec[3], specReflec;
+        QVector< double > ambi, diff, spec, reflec;
+        double radius, specReflec;
         Sphere() {}
-        Sphere(QVector3D c, double r, double sr, double a[3], double d[3], double s[3], double s2[3]) {
+        Sphere(QVector3D c, double rad, double sr, QVector< double > la,
+                QVector< double > ld, QVector< double > ls,QVector< double > r, QVector< double > col) {
             center = c;
-            radius = r;
+            radius = rad;
             specReflec = sr;
-            ambi[0] = a[0];
-            ambi[1] = a[1];
-            ambi[2] = a[2];
-            diff[0] = d[0];
-            diff[1] = d[1];
-            diff[2] = d[2];
-            spec[0] = s[0];
-            spec[1] = s[1];
-            spec[2] = s[2];
-            reflec[0] = s2[0];
-            reflec[1] = s2[1];
-            reflec[2] = s2[2];
+            ambi.append(la[0]*col[0]);
+            ambi.append(la[1]*col[1]);
+            ambi.append(la[2]*col[2]);
+            diff.append(ld[0]*col[0]);
+            diff.append(ld[1]*col[1]);
+            diff.append(ld[2]*col[2]);
+            spec.append(ls[0]*col[0]);
+            spec.append(ls[1]*col[1]);
+            spec.append(ls[2]*col[2]);
+            reflec = r;
         }
     };
     struct PointLight{
         QVector3D center;
-        double intensity[3];
+        QVector< double > intensity;
         PointLight() {}
-        PointLight(QVector3D c, double intens[3]) {
+        PointLight(QVector3D c, QVector< double > intens) {
             center = c;
-            intensity[0] = intens[0];
-            intensity[1] = intens[1];
-            intensity[2] = intens[2];
+            intensity = intens;
         }
     };
     struct AreaLight {
         QVector3D a, b, c, d;
         QVector3D normal, hStep, vStep;
-        double intensity[3], pIntensity[3];
+        QVector< double > intensity, pIntensity;
         int numHSteps, numVSteps;
         AreaLight() {}
-        AreaLight(QVector3D ta, QVector3D tb, QVector3D tc, QVector3D td, double intens[3]) {
+        AreaLight(QVector3D ta, QVector3D tb, QVector3D tc, QVector3D td, QVector< double > intens) {
             a = ta;
             b = tb;
             c = tc;
             d = td;
-            intensity[0] = intens[0];
-            intensity[1] = intens[1];
-            intensity[2] = intens[2];
+            intensity = intens;
+            pIntensity = QVector< double >(3);
             normal = QVector3D::crossProduct((c - a), (b - a)).normalized();
         }
     };
     struct Triangle {
         QVector3D a, b, c, normal;
-        double ambi[3], diff[3], spec[3], specReflec;
+        QVector<double> ambi, diff, spec;
+        double specReflec;
         Triangle() {}
-        Triangle(QVector3D va, QVector3D vb, QVector3D vc, double sr, double la[3], double ld[3], double ls[3]) {
+        Triangle(QVector3D va, QVector3D vb, QVector3D vc, double sr,
+                 QVector<double> la, QVector<double> ld, QVector<double> ls, QVector<double> col) {
             a = va;
             b = vb;
             c = vc;
             specReflec = sr;
-            ambi[0] = la[0];
-            ambi[1] = la[1];
-            ambi[2] = la[2];
-            diff[0] = ld[0];
-            diff[1] = ld[1];
-            diff[2] = ld[2];
-            spec[0] = ls[0];
-            spec[1] = ls[1];
-            spec[2] = ls[2];
+            ambi.append(la[0]*col[0]);
+            ambi.append(la[1]*col[1]);
+            ambi.append(la[2]*col[2]);
+            diff.append(ld[0]*col[0]);
+            diff.append(ld[1]*col[1]);
+            diff.append(ld[2]*col[2]);
+            spec.append(ls[0]*col[0]);
+            spec.append(ls[1]*col[1]);
+            spec.append(ls[2]*col[2]);
             normal = QVector3D::crossProduct((c - a), (b - a)).normalized();
         }
     };
