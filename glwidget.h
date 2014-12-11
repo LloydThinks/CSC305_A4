@@ -131,6 +131,7 @@ private:
 
 
     /// Additional Variables
+    bool antiAliasing;
     double sceneAmbience, picturePlaneZ, cameraToPicturePlaneDistance, lightPersistence, unitSegs;
     QVector< Sphere > spheres;
     QVector< PointLight > pointLights;

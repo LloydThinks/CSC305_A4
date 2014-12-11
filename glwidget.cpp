@@ -36,11 +36,12 @@ void GLWidget::initializeGL()
     /// Scene Settings
     cameraToPicturePlaneDistance = 10.0;
     picturePlaneZ = 12.0;
+    antiAliasing = true;
 
     /// Light Settings
     sceneAmbience = 0.4;  // Overall Ambience in the scene
     lightPersistence = 5.0;  // Increase this number to allow light to travel further
-    unitSegs = 10;  // How dense area lights are
+    unitSegs = 5;  // How dense area lights are
 
     /// Colours: [0] - Red colour value
     ///          [1] - Green colour value
@@ -73,15 +74,15 @@ void GLWidget::initializeGL()
     /// Light Sources
     // Initialize Point Lights
     pointLights = QVector< PointLight >();
-    //pointLights.append(PointLight(QVector3D(5.0, 5.0, 5.0), white));
+    //pointLights.append(PointLight(QVector3D(5.0, 10.0, 5.0), white));
     // Initialize Area Lights
     areaLights = QVector< AreaLight >();
     // Square Ceiling Light
-//    areaLights.append(AreaLight(QVector3D(4.0, 10.0, 6.0), QVector3D(6.0, 10.0, 6.0),
-//                                QVector3D(6.0, 10.0, 4.0), QVector3D(4.0, 10.0, 4.0), white));
+    areaLights.append(AreaLight(QVector3D(4.0, 10.0, 6.0), QVector3D(6.0, 10.0, 6.0),
+                                QVector3D(6.0, 10.0, 4.0), QVector3D(4.0, 10.0, 4.0), white));
     // Rectangle Ceiling Light
-    areaLights.append(AreaLight(QVector3D(2.0, 10.0, 6.0), QVector3D(8.0, 10.0, 6.0),
-                                    QVector3D(8.0, 10.0, 4.0), QVector3D(2.0, 10.0, 4.0), white));
+//    areaLights.append(AreaLight(QVector3D(2.0, 10.0, 6.0), QVector3D(8.0, 10.0, 6.0),
+//                                    QVector3D(8.0, 10.0, 4.0), QVector3D(2.0, 10.0, 4.0), white));
 
     /// Boxes
     // PUT CODE HERE
@@ -183,7 +184,11 @@ void GLWidget::makeImage()
     QImage myimage;
     QVector3D pixelPosition, ray, cameraPosition;
     QVector<double> rayTrace;
-    double widthScale, heightScale;
+    double widthScale, heightScale, shadingR, shadingG, shadingB, random;
+
+    /// Timer
+    clock_t t1,t2;
+    t1 = clock();
 
     /// Initilize variables
     myimage = QImage(renderWidth, renderHeight, QImage::Format_RGB32);
@@ -199,30 +204,52 @@ void GLWidget::makeImage()
     for (int i = 0; i < renderWidth; i++) {
         qDebug() << "Progress:" << double(i)/renderWidth*100 << "%";
         for (int j = 0; j < renderHeight; j++) {
+            shadingR = 0.0;
+            shadingG = 0.0;
+            shadingB = 0.0;
 
-            // The current pixel we are trying to draw
-            pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth),
-                                      ((double(j) * heightScale) / renderHeight), picturePlaneZ);
+            if (antiAliasing) {
+                for (int k = 0; k < 3; k++) {
+                    for (int l = 0; l < 3; l++) {
+                        random = (rand() / double(RAND_MAX));
 
-            if (i == renderWidth/2 && j == renderHeight/2)
-                qDebug() << "PlaneCenter: " << pixelPosition;
+                        // The current pixel we are trying to draw
+                        pixelPosition = QVector3D((((double(i) + ((rand() / double(RAND_MAX))/3.0) * double(k)) * widthScale) / renderWidth),
+                                                  (((double(j) + ((rand() / double(RAND_MAX))/3.0) * double(l)) * heightScale) / renderHeight), picturePlaneZ);
 
-            // Ray to be traced through the scene
-            ray = (pixelPosition - cameraPosition).normalized();
-            if (i == renderWidth/2 && j == renderHeight/2)
-                qDebug() << "Ray at Center: " << ray;
+                        // Ray to be traced through the scene
+                        ray = (pixelPosition - cameraPosition).normalized();
 
-            // Trace the ray and return important colour attributes
-            rayTrace = traceRay(ray, cameraPosition, 2);
-
-            if (rayTrace[0] != 0) {  // Ray intersects something
-                myimage.setPixel(i, (renderHeight - 1 - j), qRgb(rayTrace[1]*255.0, rayTrace[2]*255.0, rayTrace[3]*255.0));
+                        // Trace the ray and return important colour attributes
+                        rayTrace = traceRay(ray, cameraPosition, 2);
+                        shadingR += (rayTrace[1]/9.0);
+                        shadingG += (rayTrace[2]/9.0);
+                        shadingB += (rayTrace[3]/9.0);
+                    }
+                }
+                myimage.setPixel(i, (renderHeight - 1 - j), qRgb(shadingR*255.0, shadingG*255.0, shadingB*255.0));
             }
-            else {  // Ray does not intersect anything
-                myimage.setPixel(i, (renderHeight - 1 - j), qRgb(0, 0, 0));
+            else {
+                // The current pixel we are trying to draw
+                pixelPosition = QVector3D(((double(i) * widthScale) / renderWidth),
+                                          ((double(j) * heightScale) / renderHeight), picturePlaneZ);
+
+                // Ray to be traced through the scene
+                ray = (pixelPosition - cameraPosition).normalized();
+
+                // Trace the ray and return important colour attributes
+                rayTrace = traceRay(ray, cameraPosition, 2);
+
+                myimage.setPixel(i, (renderHeight - 1 - j), qRgb(rayTrace[1]*255.0, rayTrace[2]*255.0, rayTrace[3]*255.0));
             }
         }
     }
+
+    t2 = clock();
+    double runtimeSecs  = ((double)t2 - (double)t1) / CLOCKS_PER_SEC;
+    double minutes = floor((runtimeSecs / 60));
+    double seconds = runtimeSecs - (minutes * 60);
+    qDebug() << "Program Execution Time:" << minutes << "Minutes;" << seconds << "Seconds";
 
     qtimage = myimage.copy(0, 0,  myimage.width(), myimage.height());
     prepareImageDisplay(&myimage);
@@ -653,7 +680,10 @@ QVector< double > GLWidget::traceRay(QVector3D ray, QVector3D origin, int recurs
     QVector< double > eval = QVector< double >(4);
     QVector< double > intersectInfo, pointColour;
 
-    eval[0] = 0;
+    eval[0] = 0.0;
+    eval[1] = 0.0;
+    eval[2] = 0.0;
+    eval[3] = 0.0;
     if (recursiveDepth == 0)  // We have recursed enough
         return eval;
 
