@@ -39,8 +39,8 @@ void GLWidget::initializeGL()
 
     /// Light Settings
     sceneAmbience = 0.4;  // Overall Ambience in the scene
-    lightPersistence = 5.0;   // Increase this number to allow light to travel further
-    unitSegs = 10;         // How dense area lights are
+    lightPersistence = 5.0;  // Increase this number to allow light to travel further
+    unitSegs = 10;  // How dense area lights are
 
     /// Colours: [0] - Red colour value
     ///          [1] - Green colour value
