@@ -36,13 +36,13 @@ void GLWidget::initializeGL()
     /// Scene Settings
     cameraToPicturePlaneDistance = 10.0;
     picturePlaneZ = 12.0;
-    antiAliasing = true;
-    aaComplex = 3;
+    antiAliasing = false;
+    aaComplex = 5;
 
     /// Light Settings
     sceneAmbience = 0.4;  // Overall Ambience in the scene
     lightPersistence = 5.0;  // Increase this number to allow light to travel further
-    unitSegs = 5;  // How dense area lights are
+    unitSegs = 10;  // How dense area lights are
 
     /// Colours: [0] - Red colour value
     ///          [1] - Green colour value
@@ -99,13 +99,13 @@ void GLWidget::initializeGL()
 
     /// Triangle
     // Front Left
-    triangles.append(Triangle(QVector3D(5, 0.5, 8), QVector3D(4, 0.5, 6), QVector3D(5, 2.5, 7), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(5, 0.0, 8), QVector3D(4, 0.0, 6), QVector3D(5, 2.0, 7), 100, wall[0], wall[1], wall[2], white));
 
     // Front Right
-    triangles.append(Triangle(QVector3D(5, 0.5, 8), QVector3D(5, 2.5, 7), QVector3D(6, 0.5, 6), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(5, 0.0, 8), QVector3D(5, 2.0, 7), QVector3D(6, 0.0, 6), 100, wall[0], wall[1], wall[2], white));
 
     // Back Face
-    triangles.append(Triangle(QVector3D(4, 0.5, 6), QVector3D(6, 0.5, 6), QVector3D(5, 2.5, 7), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(4, 0.0, 6), QVector3D(6, 0.0, 6), QVector3D(5, 2.0, 7), 100, wall[0], wall[1], wall[2], white));
 
     /// Boxes
     // Left Side
