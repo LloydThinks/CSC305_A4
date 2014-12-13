@@ -37,6 +37,7 @@ void GLWidget::initializeGL()
     cameraToPicturePlaneDistance = 10.0;
     picturePlaneZ = 12.0;
     antiAliasing = true;
+    aaComplex = 3;
 
     /// Light Settings
     sceneAmbience = 0.4;  // Overall Ambience in the scene
@@ -49,6 +50,8 @@ void GLWidget::initializeGL()
     QVector< double > white(3); white[0] = 1.0; white[1] = 1.0; white[2] = 1.0;
     QVector< double > red(3); red[0] = 0.6196; red[1] = 0.0824; red[2] = 0.1353;
     QVector< double > blue(3); blue[0] = 0.1215; blue[1] = 0.1804; blue[2] = 0.5686;
+    QVector< double > yellow(3); yellow[0] = 0.9059; yellow[1] = 0.9294; yellow[2] = 0.2235;
+
 
     /// Materials: [0] - Ambient Coefficient
     ///            [1] - Diffuse Coefficient
@@ -59,33 +62,63 @@ void GLWidget::initializeGL()
     QVector< QVector< double > > eggShell(4, QVector< double >(3, 0.0));
         eggShell[0][0] = 0.2; eggShell[0][1] = 0.2; eggShell[0][2] = 0.2;
         eggShell[1][0] = 0.7; eggShell[1][1] = 0.7; eggShell[1][2] = 0.7;
-        eggShell[2][0] = 0.8; eggShell[2][1] = 0.8; eggShell[2][2] = 0.8;
-        eggShell[3][0] = 0.2; eggShell[3][1] = 0.2; eggShell[3][2] = 0.2;
+        eggShell[2][0] = 0.3; eggShell[2][1] = 0.3; eggShell[2][2] = 0.3;
+        eggShell[3][0] = 0.0; eggShell[3][1] = 0.0; eggShell[3][2] = 0.0;
+    QVector< QVector< double > > plastic(4, QVector< double >(3, 0.0));
+        plastic[0][0] = 0.2; plastic[0][1] = 0.2; plastic[0][2] = 0.2;
+        plastic[1][0] = 0.7; plastic[1][1] = 0.7; plastic[1][2] = 0.7;
+        plastic[2][0] = 0.8; plastic[2][1] = 0.8; plastic[2][2] = 0.8;
+        plastic[3][0] = 0.1; plastic[3][1] = 0.1; plastic[3][2] = 0.1;
     QVector< QVector< double > > wall(4, QVector< double >(3, 0.0));
         wall[0][0] = 0.2; wall[0][1] = 0.2; wall[0][2] = 0.2;
         wall[1][0] = 0.8; wall[1][1] = 0.8; wall[1][2] = 0.8;
         wall[2][0] = 0.3; wall[2][1] = 0.3; wall[2][2] = 0.3;
+    QVector< QVector< double > > cwall(4, QVector< double >(3, 0.0));
+        cwall[0][0] = 0.2; cwall[0][1] = 0.2; cwall[0][2] = 0.2;
+        cwall[1][0] = 0.1; cwall[1][1] = 0.1; cwall[1][2] = 0.1;
+        cwall[2][0] = 0.1; cwall[2][1] = 0.1; cwall[2][2] = 0.1;
 
     /// Spheres
     spheres = QVector< Sphere >();
-    spheres.append(Sphere(QVector3D(2.5, 1.6, 4.0), 1.5, 100, mirror[0], mirror[1], mirror[2], mirror[3], white));
-    spheres.append(Sphere(QVector3D(8.0, 2.0, 7.0), 1.5, 10, eggShell[0], eggShell[1], eggShell[2], eggShell[3], white));
+    spheres.append(Sphere(QVector3D(2.5, 2.1, 3.0), 2, 100, mirror[0], mirror[1], mirror[2], mirror[3], white));
+    spheres.append(Sphere(QVector3D(8.0, 5.0, 2.0), 1, 10, eggShell[0], eggShell[1], eggShell[2], eggShell[3], white));
+    spheres.append(Sphere(QVector3D(9.0, 1.0, 7.0), 1, 100, plastic[0], plastic[1], plastic[2], plastic[3], white));
 
     /// Light Sources
     // Initialize Point Lights
     pointLights = QVector< PointLight >();
-    //pointLights.append(PointLight(QVector3D(5.0, 10.0, 5.0), white));
+    //pointLights.append(PointLight(QVector3D(2.0, 2.0, 9.0), white));
     // Initialize Area Lights
     areaLights = QVector< AreaLight >();
     // Square Ceiling Light
-    areaLights.append(AreaLight(QVector3D(4.0, 10.0, 6.0), QVector3D(6.0, 10.0, 6.0),
-                                QVector3D(6.0, 10.0, 4.0), QVector3D(4.0, 10.0, 4.0), white));
+//    areaLights.append(AreaLight(QVector3D(4.0, 10.0, 6.0), QVector3D(6.0, 10.0, 6.0),
+//                                QVector3D(6.0, 10.0, 4.0), QVector3D(4.0, 10.0, 4.0), white));
     // Rectangle Ceiling Light
-//    areaLights.append(AreaLight(QVector3D(2.0, 10.0, 6.0), QVector3D(8.0, 10.0, 6.0),
-//                                    QVector3D(8.0, 10.0, 4.0), QVector3D(2.0, 10.0, 4.0), white));
+    areaLights.append(AreaLight(QVector3D(2.0, 10.0, 6.0), QVector3D(8.0, 10.0, 6.0),
+                                    QVector3D(8.0, 10.0, 4.0), QVector3D(2.0, 10.0, 4.0), white));
+
+    /// Triangle
+    // Front Left
+    triangles.append(Triangle(QVector3D(5, 0.5, 8), QVector3D(4, 0.5, 6), QVector3D(5, 2.5, 7), 100, wall[0], wall[1], wall[2], white));
+
+    // Front Right
+    triangles.append(Triangle(QVector3D(5, 0.5, 8), QVector3D(5, 2.5, 7), QVector3D(6, 0.5, 6), 100, wall[0], wall[1], wall[2], white));
+
+    // Back Face
+    triangles.append(Triangle(QVector3D(4, 0.5, 6), QVector3D(6, 0.5, 6), QVector3D(5, 2.5, 7), 100, wall[0], wall[1], wall[2], white));
 
     /// Boxes
-    // PUT CODE HERE
+    // Left Side
+    triangles.append(Triangle(QVector3D(7, 1, 3), QVector3D(7, 1, 1), QVector3D(7, 3, 1), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(7, 1, 3), QVector3D(7, 3, 1), QVector3D(7, 3, 3), 100, wall[0], wall[1], wall[2], white));
+
+    // Top Side
+    triangles.append(Triangle(QVector3D(7, 3, 3), QVector3D(7, 3, 1), QVector3D(9, 3, 1), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(7, 3, 3), QVector3D(9, 3, 1), QVector3D(9, 3, 3), 100, wall[0], wall[1], wall[2], white));
+
+    // Front Side
+    triangles.append(Triangle(QVector3D(7, 1, 3), QVector3D(7, 3, 3), QVector3D(9, 3, 3), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(7, 1, 3), QVector3D(9, 3, 3), QVector3D(9, 1, 3), 100, wall[0], wall[1], wall[2], white));
 
     /// Square Room Triangles
     // Draw Room - Left Wall
@@ -93,8 +126,8 @@ void GLWidget::initializeGL()
     triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 10, 0), QVector3D(0, 0, 0), 100, wall[0], wall[1], wall[2], red));
 
     //Draw Room - Back Wall
-    triangles.append(Triangle(QVector3D(0, 0, 0), QVector3D(0, 10, 0), QVector3D(10, 10, 0), 100, wall[0], wall[1], wall[2], white));
-    triangles.append(Triangle(QVector3D(0, 0, 0), QVector3D(10, 10, 0), QVector3D(10, 0, 0), 100, wall[0], wall[1], wall[2], white));
+    triangles.append(Triangle(QVector3D(0, 0, 0), QVector3D(0, 10, 0), QVector3D(10, 10, 0), 100, wall[0], wall[1], wall[2], yellow));
+    triangles.append(Triangle(QVector3D(0, 0, 0), QVector3D(10, 10, 0), QVector3D(10, 0, 0), 100, wall[0], wall[1], wall[2], yellow));
 
     // Draw Room - Right Wall
     triangles.append(Triangle(QVector3D(10, 0, 0), QVector3D(10, 10, 0), QVector3D(10, 10, 10), 100, wall[0], wall[1], wall[2], blue));
@@ -103,6 +136,10 @@ void GLWidget::initializeGL()
     // Draw Room - Floor
     triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(0, 0, 0), QVector3D(10, 0, 0), 100, wall[0], wall[1], wall[2], white));
     triangles.append(Triangle(QVector3D(0, 0, 10), QVector3D(10, 0, 0), QVector3D(10, 0, 10), 100, wall[0], wall[1], wall[2], white));
+
+    // Draw Room - Ceiling
+//    triangles.append(Triangle(QVector3D(0, 10, 0), QVector3D(0, 10, 10), QVector3D(10, 10, 10), 100, cwall[0], cwall[1], cwall[2], yellow));
+//    triangles.append(Triangle(QVector3D(0, 10, 0), QVector3D(10, 10, 10), QVector3D(10, 10, 0), 100, cwall[0], cwall[1], cwall[2], yellow));
 
     /// Rectangle Room Triangles
     /*
@@ -209,13 +246,13 @@ void GLWidget::makeImage()
             shadingB = 0.0;
 
             if (antiAliasing) {
-                for (int k = 0; k < 3; k++) {
-                    for (int l = 0; l < 3; l++) {
+                for (int k = 0; k < aaComplex; k++) {
+                    for (int l = 0; l < aaComplex; l++) {
                         random = (rand() / double(RAND_MAX));
 
                         // The current pixel we are trying to draw
-                        pixelPosition = QVector3D((((double(i) + ((rand() / double(RAND_MAX))/3.0) * double(k)) * widthScale) / renderWidth),
-                                                  (((double(j) + ((rand() / double(RAND_MAX))/3.0) * double(l)) * heightScale) / renderHeight), picturePlaneZ);
+                        pixelPosition = QVector3D((((double(i) + ((rand() / double(RAND_MAX))/double(aaComplex)) * double(k)) * widthScale) / renderWidth),
+                                                  (((double(j) + ((rand() / double(RAND_MAX))/double(aaComplex)) * double(l)) * heightScale) / renderHeight), picturePlaneZ);
 
                         // Ray to be traced through the scene
                         ray = (pixelPosition - cameraPosition).normalized();

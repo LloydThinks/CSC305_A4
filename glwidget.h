@@ -133,6 +133,7 @@ private:
     /// Additional Variables
     bool antiAliasing;
     double sceneAmbience, picturePlaneZ, cameraToPicturePlaneDistance, lightPersistence, unitSegs;
+    int aaComplex;
     QVector< Sphere > spheres;
     QVector< PointLight > pointLights;
     QVector< Triangle > triangles;
